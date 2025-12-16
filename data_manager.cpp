@@ -12,6 +12,8 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
+#include <cctype>
 
 DataManager::DataManager(const std::string& dir) : dataDirectory(dir) {
     std::filesystem::create_directories(dataDirectory);
@@ -36,14 +38,22 @@ void DataManager::saveAllData(TransportSystem& system) {
 
 void DataManager::loadAllData(TransportSystem& system) {
     try {
+        std::cout << "[DEBUG] Начало загрузки данных..." << std::endl;
         loadStops(system);
+        std::cout << "[DEBUG] Остановки загружены: " << system.getStops().size() << std::endl;
         loadVehicles(system);
+        std::cout << "[DEBUG] Транспорт загружен: " << system.getVehicles().size() << std::endl;
         loadDrivers(system);
+        std::cout << "[DEBUG] Водители загружены: " << system.getDrivers().size() << std::endl;
         loadRoutes(system);
+        std::cout << "[DEBUG] Маршруты загружены: " << system.getRoutes().size() << std::endl;
         loadTrips(system);
+        std::cout << "[DEBUG] Рейсы загружены: " << system.getTrips().size() << std::endl;
         loadAdminCredentials(system);
+        std::cout << "[DEBUG] Загрузка данных завершена" << std::endl;
     } catch (const std::exception& e) {
-        // Тихо игнорируем ошибки загрузки
+        std::cout << "[DEBUG] Ошибка при загрузке данных: " << e.what() << std::endl;
+        // Не игнорируем ошибки, выводим их
     }
 }
 
@@ -123,16 +133,36 @@ void DataManager::saveAdminCredentials(TransportSystem& system) {
 
 void DataManager::loadStops(TransportSystem& system) {
     std::ifstream file(dataDirectory + "stops.txt");
-    if (!file.is_open()) return;
+    if (!file.is_open()) {
+        std::cout << "[DEBUG] Файл stops.txt не найден или не может быть открыт" << std::endl;
+        return;
+    }
 
     std::string line;
     int lineNumber = 0;
+    int loadedCount = 0;
     while (std::getline(file, line)) {
         lineNumber++;
         if (!line.empty()) {
             try {
-                system.addStop(Stop::deserialize(line));
+                Stop stop = Stop::deserialize(line);
+                // Проверяем на дубликаты перед добавлением
+                bool exists = false;
+                const auto& existingStops = system.getStops();
+                for (const auto& existingStop : existingStops) {
+                    if (existingStop.getId() == stop.getId()) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    system.addStopDirect(stop);
+                    loadedCount++;
+                } else {
+                    std::cout << "[DEBUG] Остановка с ID " << stop.getId() << " уже существует, пропускаем" << std::endl;
+                }
             } catch (const std::exception& e) {
+                std::cout << "[DEBUG] Ошибка при загрузке остановки из строки " << lineNumber << ": " << e.what() << std::endl;
                 throw FileException("stops.txt", "чтение строки " + std::to_string(lineNumber) + ": " + e.what());
             }
         }
@@ -141,14 +171,19 @@ void DataManager::loadStops(TransportSystem& system) {
         throw FileException("stops.txt", "ошибка чтения файла");
     }
     file.close();
+    std::cout << "[DEBUG] Всего загружено остановок: " << loadedCount << std::endl;
 }
 
 void DataManager::loadVehicles(TransportSystem& system) {
     std::ifstream file(dataDirectory + "vehicles.txt");
-    if (!file.is_open()) return;
+    if (!file.is_open()) {
+        std::cout << "[DEBUG] Файл vehicles.txt не найден или не может быть открыт" << std::endl;
+        return;
+    }
 
     std::string line;
     int lineNumber = 0;
+    int loadedCount = 0;
     while (std::getline(file, line)) {
         lineNumber++;
         if (!line.empty()) {
@@ -159,19 +194,35 @@ void DataManager::loadVehicles(TransportSystem& system) {
                 std::getline(ss, model, '|');
                 std::getline(ss, licensePlate);
 
-                std::shared_ptr<Vehicle> vehicle;
-                if (type == "Автобус") {
-                    vehicle = std::make_shared<Bus>(model, licensePlate);
-                } else if (type == "Трамвай") {
-                    vehicle = std::make_shared<Tram>(model, licensePlate);
-                } else if (type == "Троллейбус") {
-                    vehicle = std::make_shared<Trolleybus>(model, licensePlate);
-                } else {
-                    throw InputException("Неизвестный тип транспорта: " + type);
+                // Проверяем на дубликаты перед добавлением
+                bool exists = false;
+                const auto& existingVehicles = system.getVehicles();
+                for (const auto& existingVehicle : existingVehicles) {
+                    if (existingVehicle->getLicensePlate() == licensePlate) {
+                        exists = true;
+                        break;
+                    }
                 }
+                
+                if (!exists) {
+                    std::shared_ptr<Vehicle> vehicle;
+                    if (type == "Автобус") {
+                        vehicle = std::make_shared<Bus>(model, licensePlate);
+                    } else if (type == "Трамвай") {
+                        vehicle = std::make_shared<Tram>(model, licensePlate);
+                    } else if (type == "Троллейбус") {
+                        vehicle = std::make_shared<Trolleybus>(model, licensePlate);
+                    } else {
+                        throw InputException("Неизвестный тип транспорта: " + type);
+                    }
 
-                system.addVehicle(vehicle);
+                    system.addVehicleDirect(vehicle);
+                    loadedCount++;
+                } else {
+                    std::cout << "[DEBUG] Транспорт с номером " << licensePlate << " уже существует, пропускаем" << std::endl;
+                }
             } catch (const std::exception& e) {
+                std::cout << "[DEBUG] Ошибка при загрузке транспорта из строки " << lineNumber << ": " << e.what() << std::endl;
                 throw FileException("vehicles.txt", "чтение строки " + std::to_string(lineNumber) + ": " + e.what());
             }
         }
@@ -180,21 +231,69 @@ void DataManager::loadVehicles(TransportSystem& system) {
         throw FileException("vehicles.txt", "ошибка чтения файла");
     }
     file.close();
+    std::cout << "[DEBUG] Всего загружено транспорта: " << loadedCount << std::endl;
 }
 
 void DataManager::loadDrivers(TransportSystem& system) {
     std::ifstream file(dataDirectory + "drivers.txt");
-    if (!file.is_open()) return;
+    if (!file.is_open()) {
+        std::cout << "[DEBUG] Файл drivers.txt не найден или не может быть открыт" << std::endl;
+        return;
+    }
 
     std::string line;
     int lineNumber = 0;
+    int loadedCount = 0;
     while (std::getline(file, line)) {
         lineNumber++;
         if (!line.empty()) {
             try {
-                system.addDriver(Driver::deserialize(line));
+                // Проверяем, что строка не содержит данные транспорта (формат: тип|модель|номер)
+                // Водители должны быть в формате: имя|фамилия|отчество
+                // Если в строке есть цифры в первой части или формат не соответствует, пропускаем
+                std::istringstream testStream(line);
+                std::string firstPart, secondPart, thirdPart;
+                std::getline(testStream, firstPart, '|');
+                std::getline(testStream, secondPart, '|');
+                std::getline(testStream, thirdPart);
+                
+                // Проверяем, что первая часть не является типом транспорта
+                if (firstPart == "Автобус" || firstPart == "Трамвай" || firstPart == "Троллейбус") {
+                    std::cout << "[DEBUG] Пропущена строка с данными транспорта в drivers.txt (строка " << lineNumber << "): " << line << std::endl;
+                    continue;
+                }
+                
+                // Проверяем, что первая часть выглядит как имя (не номерной знак транспорта)
+                // Номерные знаки обычно содержат пробелы и цифры в определенном формате
+                // Имена обычно начинаются с буквы и не содержат только цифры
+                if (firstPart.length() > 0 && std::isdigit(static_cast<unsigned char>(firstPart[0]))) {
+                    // Начинается с цифры - похоже на номерной знак или ID, пропускаем
+                    std::cout << "[DEBUG] Пропущена строка с неправильным форматом в drivers.txt (строка " << lineNumber << "): " << line << std::endl;
+                    continue;
+                }
+                
+                auto driver = Driver::deserialize(line);
+                // Проверяем на дубликаты перед добавлением
+                bool exists = false;
+                const auto& existingDrivers = system.getDrivers();
+                for (const auto& existingDriver : existingDrivers) {
+                    if (existingDriver->getFirstName() == driver->getFirstName() &&
+                        existingDriver->getLastName() == driver->getLastName() &&
+                        existingDriver->getMiddleName() == driver->getMiddleName()) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    system.addDriverDirect(driver);
+                    loadedCount++;
+                } else {
+                    std::cout << "[DEBUG] Водитель " << driver->getFullName() << " уже существует, пропускаем" << std::endl;
+                }
             } catch (const std::exception& e) {
-                throw FileException("drivers.txt", "чтение строки " + std::to_string(lineNumber) + ": " + e.what());
+                std::cout << "[DEBUG] Ошибка при загрузке водителя из строки " << lineNumber << ": " << e.what() << " (строка: " << line << ")" << std::endl;
+                // Не бросаем исключение, просто пропускаем неправильную строку
+                continue;
             }
         }
     }
@@ -202,20 +301,41 @@ void DataManager::loadDrivers(TransportSystem& system) {
         throw FileException("drivers.txt", "ошибка чтения файла");
     }
     file.close();
+    std::cout << "[DEBUG] Всего загружено водителей: " << loadedCount << std::endl;
 }
 
 void DataManager::loadRoutes(TransportSystem& system) {
     std::ifstream file(dataDirectory + "routes.txt");
-    if (!file.is_open()) return;
+    if (!file.is_open()) {
+        std::cout << "[DEBUG] Файл routes.txt не найден или не может быть открыт" << std::endl;
+        return;
+    }
 
     std::string line;
     int lineNumber = 0;
+    int loadedCount = 0;
     while (std::getline(file, line)) {
         lineNumber++;
         if (!line.empty()) {
             try {
-                system.addRoute(Route::deserialize(line));
+                auto route = Route::deserialize(line);
+                // Проверяем на дубликаты перед добавлением
+                bool exists = false;
+                const auto& existingRoutes = system.getRoutes();
+                for (const auto& existingRoute : existingRoutes) {
+                    if (existingRoute->getNumber() == route->getNumber()) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    system.addRouteDirect(route);
+                    loadedCount++;
+                } else {
+                    std::cout << "[DEBUG] Маршрут с номером " << route->getNumber() << " уже существует, пропускаем" << std::endl;
+                }
             } catch (const std::exception& e) {
+                std::cout << "[DEBUG] Ошибка при загрузке маршрута из строки " << lineNumber << ": " << e.what() << std::endl;
                 throw FileException("routes.txt", "чтение строки " + std::to_string(lineNumber) + ": " + e.what());
             }
         }
@@ -224,21 +344,44 @@ void DataManager::loadRoutes(TransportSystem& system) {
         throw FileException("routes.txt", "ошибка чтения файла");
     }
     file.close();
+    std::cout << "[DEBUG] Всего загружено маршрутов: " << loadedCount << std::endl;
 }
 
 void DataManager::loadTrips(TransportSystem& system) {
     std::ifstream file(dataDirectory + "trips.txt");
-    if (!file.is_open()) return;
+    if (!file.is_open()) {
+        std::cout << "[DEBUG] Файл trips.txt не найден или не может быть открыт" << std::endl;
+        return;
+    }
 
     std::string line;
     int lineNumber = 0;
+    int loadedCount = 0;
     while (std::getline(file, line)) {
         lineNumber++;
         if (!line.empty()) {
             try {
-                system.addTrip(Trip::deserialize(line, &system));
+                auto trip = Trip::deserialize(line, &system);
+                // Проверяем на дубликаты перед добавлением
+                bool exists = false;
+                const auto& existingTrips = system.getTrips();
+                for (const auto& existingTrip : existingTrips) {
+                    if (existingTrip->getTripId() == trip->getTripId()) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
+                    system.addTripDirect(trip);
+                    loadedCount++;
+                    std::cout << "[DEBUG] Загружен рейс ID: " << trip->getTripId() << std::endl;
+                } else {
+                    std::cout << "[DEBUG] Рейс с ID " << trip->getTripId() << " уже существует, пропускаем" << std::endl;
+                }
             } catch (const std::exception& e) {
-                throw FileException("trips.txt", "чтение строки " + std::to_string(lineNumber) + ": " + e.what());
+                std::cout << "[DEBUG] Ошибка при загрузке рейса из строки " << lineNumber << ": " << e.what() << std::endl;
+                // Не бросаем исключение, просто пропускаем неправильную строку
+                continue;
             }
         }
     }
@@ -246,6 +389,7 @@ void DataManager::loadTrips(TransportSystem& system) {
         throw FileException("trips.txt", "ошибка чтения файла");
     }
     file.close();
+    std::cout << "[DEBUG] Всего загружено рейсов: " << loadedCount << std::endl;
 }
 
 void DataManager::loadAdminCredentials(TransportSystem& system) {

@@ -65,8 +65,12 @@ template<typename T>
 void DynamicArray<T>::erase(const Iterator& it) {
     size_t index = it - begin();
     if (index < size_) {
+        // Уничтожаем элемент, который удаляем
+        data[index].~T();
+        // Сдвигаем остальные элементы
         for (size_t i = index; i < size_ - 1; ++i) {
-            data[i] = data[i + 1];
+            new (data + i) T(std::move(data[i + 1]));
+            data[i + 1].~T();
         }
         --size_;
     }
@@ -78,9 +82,15 @@ void DynamicArray<T>::erase(const Iterator& first, const Iterator& last) {
     size_t endIndex = last - begin();
     size_t count = endIndex - startIndex;
 
-    if (startIndex < size_ && endIndex <= size_) {
+    if (startIndex < size_ && endIndex <= size_ && count > 0) {
+        // Уничтожаем удаляемые элементы
+        for (size_t i = startIndex; i < endIndex; ++i) {
+            data[i].~T();
+        }
+        // Сдвигаем оставшиеся элементы
         for (size_t i = startIndex; i < size_ - count; ++i) {
-            data[i] = data[i + count];
+            new (data + i) T(std::move(data[i + count]));
+            data[i + count].~T();
         }
         size_ -= count;
     }
@@ -128,6 +138,10 @@ bool DynamicArray<T>::empty() const {
 
 template<typename T>
 void DynamicArray<T>::clear() {
+    // Уничтожаем все элементы
+    for (size_t i = 0; i < size_; ++i) {
+        data[i].~T();
+    }
     size_ = 0;
 }
 
@@ -143,12 +157,12 @@ typename DynamicArray<T>::Iterator DynamicArray<T>::end() {
 
 template<typename T>
 typename DynamicArray<T>::Iterator DynamicArray<T>::begin() const {
-    return Iterator(const_cast<T*>(data));
+    return Iterator(data);
 }
 
 template<typename T>
 typename DynamicArray<T>::Iterator DynamicArray<T>::end() const {
-    return Iterator(const_cast<T*>(data + size_));
+    return Iterator(data + size_);
 }
 
 #endif // DYNAMIC_ARRAY_TPP

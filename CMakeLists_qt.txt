@@ -22,44 +22,46 @@ endif()
 
 # Исходные файлы проекта
 set(SOURCES
-        main_qt.cpp
-        qt_ui.cpp
-        qt_ui.h
-        exceptions.cpp
-        stop.cpp
-        time.cpp
-        vehicle.cpp
-        electric_transport.cpp
-        fuel_transport.cpp
-        tram.cpp
-        trolleybus.cpp
-        bus.cpp
-        driver.cpp
-        route.cpp
-        trip.cpp
-        journey.cpp
-        algorithm.cpp
-        journey_planner.cpp
-        driver_schedule.cpp
-        data_manager.cpp
-        command.cpp
-        commands.cpp
-        transport_system.cpp
+    main_qt.cpp
+    qt_ui.cpp
+    qt_ui.h
+    exceptions.cpp
+    stop.cpp
+    time.cpp
+    vehicle.cpp
+    electric_transport.cpp
+    fuel_transport.cpp
+    tram.cpp
+    trolleybus.cpp
+    bus.cpp
+    driver.cpp
+    route.cpp
+    trip.cpp
+    journey.cpp
+    algorithm.cpp
+    journey_planner.cpp
+    driver_schedule.cpp
+    data_manager.cpp
+    command.cpp
+    commands.cpp
+    transport_system.cpp
 )
 
 # Создание исполняемого файла
+# Явно исключаем main.cpp и ui.cpp из сборки Qt версии
+list(REMOVE_ITEM SOURCES main.cpp ui.cpp)
 add_executable(kursovayacpp_qt ${SOURCES})
 
 # Подключение Qt библиотек
 if(QT_VERSION_MAJOR EQUAL 6)
     target_link_libraries(kursovayacpp_qt
-            Qt6::Core
-            Qt6::Widgets
+        Qt6::Core
+        Qt6::Widgets
     )
 else()
     target_link_libraries(kursovayacpp_qt
-            Qt5::Core
-            Qt5::Widgets
+        Qt5::Core
+        Qt5::Widgets
     )
 endif()
 
@@ -72,6 +74,6 @@ endif()
 
 # Установка выходной директории (опционально)
 set_target_properties(kursovayacpp_qt PROPERTIES
-        WIN32_EXECUTABLE TRUE
+    WIN32_EXECUTABLE TRUE
 )
 

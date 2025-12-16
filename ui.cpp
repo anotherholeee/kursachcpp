@@ -129,15 +129,26 @@ void adminAddTrip(TransportSystem& system) {
         system.displayAllVehicles();
         std::cout << "===========================\n\n";
 
-        std::cout << "=== ДОСТУПНЫЕ ВОДИТЕЛИ ===\n";
         const auto& drivers = system.getDrivers();
+        if (drivers.empty()) {
+            std::cout << "[DEBUG] Список водителей пуст. Количество водителей: " << drivers.size() << '\n';
+            throw ContainerException("В системе нет водителей. Сначала добавьте водителя.");
+        }
+
+        std::cout << "=== ДОСТУПНЫЕ ВОДИТЕЛИ (всего: " << drivers.size() << ") ===\n";
         for (size_t i = 0; i < drivers.size(); ++i) {
-            std::cout << (i+1) << ". " << drivers[i]->getFullName() << '\n';
+            std::cout << (i+1) << ". " << drivers[i]->getFullName() 
+                      << " (Имя: " << drivers[i]->getFirstName() 
+                      << ", Фамилия: " << drivers[i]->getLastName();
+            if (!drivers[i]->getMiddleName().empty()) {
+                std::cout << ", Отчество: " << drivers[i]->getMiddleName();
+            }
+            std::cout << ")\n";
         }
         std::cout << "==========================\n\n";
 
-        int tripId, routeNumber;
-        std::string licensePlate, driverFirstName, driverLastName, driverMiddleName, startTimeStr;
+        int tripId, routeNumber, driverChoice;
+        std::string licensePlate, startTimeStr;
 
         std::cout << "Введите ID рейса: ";
         if (!(std::cin >> tripId)) {
@@ -168,17 +179,20 @@ void adminAddTrip(TransportSystem& system) {
             throw ContainerException("Транспортное средство не найдено!");
         }
 
-        std::cout << "Введите имя водителя: ";
-        std::getline(std::cin, driverFirstName);
-        std::cout << "Введите фамилию водителя: ";
-        std::getline(std::cin, driverLastName);
-        std::cout << "Введите отчество водителя (если есть, иначе Enter): ";
-        std::getline(std::cin, driverMiddleName);
-
-        auto driver = system.findDriverByName(driverFirstName, driverLastName, driverMiddleName);
-        if (!driver) {
-            throw ContainerException("Водитель не найден!");
+        std::cout << "Выберите водителя (введите номер из списка): ";
+        if (!(std::cin >> driverChoice)) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            throw InputException("Неверный формат ввода для выбора водителя");
         }
+        std::cin.ignore();
+
+        if (driverChoice < 1 || driverChoice > static_cast<int>(drivers.size())) {
+            throw InputException("Неверный выбор водителя. Допустимые значения: 1-" + 
+                                std::to_string(drivers.size()));
+        }
+
+        auto driver = drivers[driverChoice - 1];
 
         std::cout << "Введите время отправления (HH:MM): ";
         std::getline(std::cin, startTimeStr);
@@ -398,6 +412,76 @@ void viewStopTimetable(TransportSystem& system) {
 
         std::string stopName = getStopNameByInput(system, stopInput);
         system.getStopTimetableAll(stopName);
+    } catch (const std::exception& e) {
+        std::cout << "Ошибка: " << e.what() << '\n';
+    }
+}
+
+void viewTransportScheduleGuest(TransportSystem& system) {
+    try {
+        std::cout << "\n=== ВЫБОР ТИПА ТРАНСПОРТА ===\n";
+        std::cout << "1. Автобус\n";
+        std::cout << "2. Троллейбус\n";
+        std::cout << "3. Трамвай\n";
+        std::cout << "Выберите тип транспорта: ";
+
+        int transportTypeChoice;
+        if (!(std::cin >> transportTypeChoice)) {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            throw InputException("Неверный формат ввода для типа транспорта");
+        }
+        std::cin.ignore();
+
+        std::string selectedType;
+        switch (transportTypeChoice) {
+            case 1: selectedType = "Автобус"; break;
+            case 2: selectedType = "Троллейбус"; break;
+            case 3: selectedType = "Трамвай"; break;
+            default:
+                throw InputException("Неверный выбор типа транспорта. Допустимые значения: 1-3");
+        }
+
+        const auto& trips = system.getTrips();
+        std::vector<std::shared_ptr<Trip>> filteredTrips;
+        
+        for (const auto& trip : trips) {
+            if (trip->getRoute()->getVehicleType() == selectedType) {
+                filteredTrips.push_back(trip);
+            }
+        }
+
+        if (filteredTrips.empty()) {
+            std::cout << "\nРейсов типа '" << selectedType << "' не найдено.\n";
+            return;
+        }
+
+        std::string dayNames[] = {"", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
+        
+        std::cout << "\n=== РАСПИСАНИЕ ТРАНСПОРТА: " << selectedType << " ===\n";
+        std::cout << "========================================\n";
+
+        for (const auto& trip : filteredTrips) {
+            std::cout << "\nРейс " << trip->getTripId() << ":\n";
+            std::cout << "  Маршрут: " << trip->getRoute()->getNumber() << "\n";
+            std::cout << "  День недели: " << dayNames[trip->getWeekDay()] << "\n";
+            std::cout << "  Время отправления: " << trip->getStartTime() << "\n";
+            std::cout << "  Транспорт: " << trip->getVehicle()->getInfo() << "\n";
+            std::cout << "  Водитель: " << trip->getDriver()->getFullName() << "\n";
+            
+            const auto& schedule = trip->getSchedule();
+            if (!schedule.empty()) {
+                std::cout << "  Расписание:\n";
+                for (const auto& [stop, time] : schedule) {
+                    std::cout << "    " << stop << " - " << time << "\n";
+                }
+            } else {
+                std::cout << "  Расписание: не рассчитано\n";
+            }
+            std::cout << "  ---\n";
+        }
+        std::cout << "========================================\n";
+
     } catch (const std::exception& e) {
         std::cout << "Ошибка: " << e.what() << '\n';
     }
@@ -684,7 +768,7 @@ void runGuestMode(TransportSystem& system) {
         try {
             switch (choice) {
                 case 0: running = false; break;
-                case 1: viewTransportSchedule(system); break;
+                case 1: viewTransportScheduleGuest(system); break;
                 case 2: viewStopTimetable(system); break;
                 case 3: searchRoutes(system); break;
                 default: std::cout << "Неверный выбор.\n";

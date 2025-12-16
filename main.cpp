@@ -22,8 +22,22 @@ int main() {
 
         system.loadData();
 
-        if (system.getStops().empty()) {
+        // Если данных нет вообще (файлы не существуют или пустые), инициализируем тестовые данные
+        // Но только если ВСЕ категории пустые, чтобы не добавлять дубликаты
+        if (system.getStops().empty() && system.getDrivers().empty() && 
+            system.getVehicles().empty() && system.getRoutes().empty() && 
+            system.getTrips().empty()) {
+            std::cout << "Инициализация тестовых данных...\n";
             initializeTestData(system);
+            // Сохраняем сразу после инициализации
+            system.saveData();
+        } else {
+            std::cout << "Данные загружены: " 
+                      << system.getStops().size() << " остановок, "
+                      << system.getRoutes().size() << " маршрутов, "
+                      << system.getVehicles().size() << " транспорта, "
+                      << system.getDrivers().size() << " водителей, "
+                      << system.getTrips().size() << " рейсов\n";
         }
 
         int choice;

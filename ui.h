@@ -17,6 +17,7 @@ void adminAddStop(TransportSystem& system);
 void adminAddDriver(TransportSystem& system);
 
 void viewTransportSchedule(TransportSystem& system);
+void viewTransportScheduleGuest(TransportSystem& system);
 void viewStopTimetable(TransportSystem& system);
 void searchRoutes(TransportSystem& system);
 void calculateArrivalTime(TransportSystem& system);
