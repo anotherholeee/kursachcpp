@@ -133,3 +133,9 @@ cmake -DCMAKE_PREFIX_PATH="полный_путь_к_Qt" ..
 
 
 
+
+
+
+
+
+

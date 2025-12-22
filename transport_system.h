@@ -47,7 +47,10 @@ public:
 
     bool canUndo() const;
     void undo();
+    bool canRedo() const;
+    void redo();
     std::string getLastCommandDescription() const;
+    std::string getNextCommandDescription() const;
 
     bool authenticateAdmin(const std::string& username, const std::string& password);
     void addAdmin(const std::string& username, const std::string& password);

@@ -11,6 +11,8 @@
 #include "fuel_transport.h"
 #include "electric_transport.h"
 #include "commands.h"
+#include "journey.h"
+#include "journey_planner.h"
 #include <QApplication>
 #include <QHeaderView>
 #include <QDateTime>
@@ -19,6 +21,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <vector>
+#include <set>
 
 // ==================== MainWindow ====================
 
@@ -324,8 +327,8 @@ void AdminModeWidget::setupUI() {
     routesTable->horizontalHeader()->setStretchLastSection(true);
     
     tripsTable = new QTableWidget(dataTab);
-    tripsTable->setColumnCount(5);
-    tripsTable->setHorizontalHeaderLabels(QStringList() << "ID" << "Маршрут" << "Транспорт" << "Водитель" << "Время начала");
+    tripsTable->setColumnCount(6);
+    tripsTable->setHorizontalHeaderLabels(QStringList() << "ID" << "Маршрут" << "Транспорт" << "Водитель" << "Время начала" << "День недели");
     tripsTable->horizontalHeader()->setStretchLastSection(true);
     
     vehiclesTable = new QTableWidget(dataTab);
@@ -340,7 +343,7 @@ void AdminModeWidget::setupUI() {
     
     driversTable = new QTableWidget(dataTab);
     driversTable->setColumnCount(4);
-    driversTable->setHorizontalHeaderLabels(QStringList() << "Имя" << "Фамилия" << "Отчество" << "Лицензия");
+    driversTable->setHorizontalHeaderLabels(QStringList() << "Имя" << "Фамилия" << "Отчество" << "Категория");
     driversTable->horizontalHeader()->setStretchLastSection(true);
     
     dataTabs->addTab(routesTable, "Маршруты");
@@ -370,19 +373,23 @@ void AdminModeWidget::setupUI() {
     
     QPushButton* saveBtn = new QPushButton("Сохранить данные", manageTab);
     QPushButton* undoBtn = new QPushButton("Отменить последнее действие", manageTab);
+    QPushButton* redoBtn = new QPushButton("Повторить последнее действие", manageTab);
     QPushButton* backBtn = new QPushButton("Выйти из режима администратора", manageTab);
     
     saveBtn->setMinimumHeight(40);
     undoBtn->setMinimumHeight(40);
+    redoBtn->setMinimumHeight(40);
     backBtn->setMinimumHeight(40);
     
     manageLayout->addWidget(saveBtn);
     manageLayout->addWidget(undoBtn);
+    manageLayout->addWidget(redoBtn);
     manageLayout->addStretch();
     manageLayout->addWidget(backBtn);
     
     connect(saveBtn, &QPushButton::clicked, this, &AdminModeWidget::saveData);
     connect(undoBtn, &QPushButton::clicked, this, &AdminModeWidget::undoLastAction);
+    connect(redoBtn, &QPushButton::clicked, this, &AdminModeWidget::redoLastAction);
     connect(backBtn, &QPushButton::clicked, this, &AdminModeWidget::backToMain);
     
     tabWidget->addTab(manageTab, "Управление");
@@ -425,17 +432,34 @@ void AdminModeWidget::refreshTripsTable() {
             QTableWidgetItem* noDataItem = new QTableWidgetItem("Нет рейсов в системе. Добавьте рейсы через меню 'Добавление' -> 'Добавить рейс'");
             noDataItem->setTextAlignment(Qt::AlignCenter);
             tripsTable->setItem(0, 0, noDataItem);
-            tripsTable->setSpan(0, 0, 1, 5);
+            tripsTable->setSpan(0, 0, 1, 6);
             return;
         }
         
-        int validTrips = 0;
+        // Собираем все рейсы для сортировки
+        std::vector<std::shared_ptr<Trip>> validTripsList;
         for (const auto& trip : trips) {
             if (!trip) {
                 std::cout << "[DEBUG] Найден nullptr рейс" << std::endl;
                 continue;
             }
-            
+            validTripsList.push_back(trip);
+        }
+        
+        // Сортируем по дню недели, затем по времени начала
+        std::sort(validTripsList.begin(), validTripsList.end(),
+                  [](const std::shared_ptr<Trip>& a, const std::shared_ptr<Trip>& b) {
+                      int dayA = a->getWeekDay();
+                      int dayB = b->getWeekDay();
+                      if (dayA != dayB) {
+                          return dayA < dayB;
+                      }
+                      // Если день одинаковый, сортируем по времени начала
+                      return a->getStartTime() < b->getStartTime();
+                  });
+        
+        int validTrips = 0;
+        for (const auto& trip : validTripsList) {
             try {
                 int row = tripsTable->rowCount();
                 tripsTable->insertRow(row);
@@ -473,6 +497,12 @@ void AdminModeWidget::refreshTripsTable() {
                                                   .arg(startTime.getMinutes(), 2, 10, QChar('0'));
                 tripsTable->setItem(row, 4, new QTableWidgetItem(timeStr));
                 
+                // День недели
+                QStringList dayShortNames = {"", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
+                int weekDay = trip->getWeekDay();
+                QString dayName = (weekDay >= 1 && weekDay <= 7) ? dayShortNames[weekDay] : "?";
+                tripsTable->setItem(row, 5, new QTableWidgetItem(dayName));
+                
                 validTrips++;
             } catch (const std::exception& e) {
                 std::cout << "[DEBUG] Ошибка при обработке рейса: " << e.what() << std::endl;
@@ -489,7 +519,7 @@ void AdminModeWidget::refreshTripsTable() {
             QTableWidgetItem* errorItem = new QTableWidgetItem("Ошибка при загрузке данных о рейсах. Проверьте консоль для деталей.");
             errorItem->setTextAlignment(Qt::AlignCenter);
             tripsTable->setItem(0, 0, errorItem);
-            tripsTable->setSpan(0, 0, 1, 5);
+            tripsTable->setSpan(0, 0, 1, 6);
         } else {
             // Автоматически подгоняем ширину колонок
             tripsTable->resizeColumnsToContents();
@@ -500,7 +530,7 @@ void AdminModeWidget::refreshTripsTable() {
         QTableWidgetItem* errorItem = new QTableWidgetItem(QString("Ошибка: %1").arg(e.what()));
         errorItem->setTextAlignment(Qt::AlignCenter);
         tripsTable->setItem(0, 0, errorItem);
-        tripsTable->setSpan(0, 0, 1, 5);
+        tripsTable->setSpan(0, 0, 1, 6);
     }
 }
 
@@ -545,7 +575,11 @@ void AdminModeWidget::refreshDriversTable() {
         driversTable->setItem(row, 0, new QTableWidgetItem(QString::fromStdString(driver->getFirstName())));
         driversTable->setItem(row, 1, new QTableWidgetItem(QString::fromStdString(driver->getLastName())));
         driversTable->setItem(row, 2, new QTableWidgetItem(QString::fromStdString(driver->getMiddleName())));
-        driversTable->setItem(row, 3, new QTableWidgetItem("-")); // License number не хранится в Driver
+        QString category = QString::fromStdString(driver->getCategory());
+        if (category.isEmpty()) {
+            category = "Не указана";
+        }
+        driversTable->setItem(row, 3, new QTableWidgetItem(category));
     }
 }
 
@@ -741,6 +775,24 @@ void AdminModeWidget::undoLastAction() {
     }
 }
 
+void AdminModeWidget::redoLastAction() {
+    try {
+        if (transportSystem->canRedo()) {
+            // Сохраняем описание команды ДО повтора
+            std::string description = transportSystem->getNextCommandDescription();
+            transportSystem->redo();
+            QMessageBox::information(this, "Повтор", 
+                QString("Повторено: %1").arg(QString::fromStdString(description)));
+            refreshAll();
+        } else {
+            QMessageBox::information(this, "Информация", "Нет действий для повтора.");
+        }
+    } catch (const std::exception& e) {
+        QMessageBox::warning(this, "Ошибка", QString("Ошибка при повторе действия: %1").arg(e.what()));
+        // Не закрываем программу, просто показываем ошибку
+    }
+}
+
 void AdminModeWidget::backToMain() {
     emit backToMainRequested();
 }
@@ -792,75 +844,148 @@ void AdminLoginDialog::tryLogin() {
 TransportScheduleDialog::TransportScheduleDialog(TransportSystem* system, QWidget *parent)
     : QDialog(parent), transportSystem(system) {
     setWindowTitle("Расписание транспорта");
-    setMinimumSize(800, 600);
+    setMinimumSize(900, 700);
     
     QVBoxLayout* layout = new QVBoxLayout(this);
     
     // Выбор типа транспорта
     QLabel* typeLabel = new QLabel("Выберите тип транспорта:", this);
     vehicleTypeComboBox = new QComboBox(this);
-    vehicleTypeComboBox->addItem("Все типы", "");
     vehicleTypeComboBox->addItem("Автобус", "Автобус");
     vehicleTypeComboBox->addItem("Трамвай", "Трамвай");
     vehicleTypeComboBox->addItem("Троллейбус", "Троллейбус");
     
+    // Выбор маршрута
+    QLabel* routeLabel = new QLabel("Выберите маршрут:", this);
+    routeComboBox = new QComboBox(this);
+    routeComboBox->addItem("Все маршруты", 0);
+    
+    // Выбор дня недели
+    QLabel* weekDayLabel = new QLabel("Выберите день недели:", this);
+    weekDayComboBox = new QComboBox(this);
+    weekDayComboBox->addItem("Все дни", 0);
+    weekDayComboBox->addItem("Понедельник", 1);
+    weekDayComboBox->addItem("Вторник", 2);
+    weekDayComboBox->addItem("Среда", 3);
+    weekDayComboBox->addItem("Четверг", 4);
+    weekDayComboBox->addItem("Пятница", 5);
+    weekDayComboBox->addItem("Суббота", 6);
+    weekDayComboBox->addItem("Воскресенье", 7);
+    
     scheduleTable = new QTableWidget(this);
-    scheduleTable->setColumnCount(6);
+    scheduleTable->setColumnCount(7);
     scheduleTable->setHorizontalHeaderLabels(QStringList() << "ID рейса" << "Маршрут" 
-        << "Транспорт" << "Водитель" << "Время начала" << "День недели");
+        << "Транспорт" << "Водитель" << "Время начала" << "День недели" << "Расписание");
     scheduleTable->horizontalHeader()->setStretchLastSection(true);
     
     QPushButton* closeBtn = new QPushButton("Закрыть", this);
     
     layout->addWidget(typeLabel);
     layout->addWidget(vehicleTypeComboBox);
+    layout->addWidget(routeLabel);
+    layout->addWidget(routeComboBox);
+    layout->addWidget(weekDayLabel);
+    layout->addWidget(weekDayComboBox);
     layout->addWidget(scheduleTable);
     layout->addWidget(closeBtn);
     
     connect(vehicleTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransportScheduleDialog::onVehicleTypeChanged);
+    connect(routeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &TransportScheduleDialog::onRouteChanged);
+    connect(weekDayComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &TransportScheduleDialog::onWeekDayChanged);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     
-    // Загружаем все рейсы по умолчанию
-    populateSchedule("");
+    // Инициализируем маршруты для первого типа транспорта
+    onVehicleTypeChanged();
 }
 
 void TransportScheduleDialog::onVehicleTypeChanged() {
     QString selectedType = vehicleTypeComboBox->currentData().toString();
-    populateSchedule(selectedType.toStdString());
+    populateRoutes(selectedType.toStdString());
+    onFilterChanged();
 }
 
-void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
+void TransportScheduleDialog::onRouteChanged() {
+    onFilterChanged();
+}
+
+void TransportScheduleDialog::onWeekDayChanged() {
+    onFilterChanged();
+}
+
+void TransportScheduleDialog::onFilterChanged() {
+    QString selectedType = vehicleTypeComboBox->currentData().toString();
+    int routeNumber = routeComboBox->currentData().toInt();
+    int weekDay = weekDayComboBox->currentData().toInt();
+    populateSchedule(selectedType.toStdString(), weekDay, routeNumber);
+}
+
+void TransportScheduleDialog::populateRoutes(const std::string& vehicleType) {
+    routeComboBox->clear();
+    routeComboBox->addItem("Все маршруты", 0);
+    
+    const auto& routes = transportSystem->getRoutes();
+    for (const auto& route : routes) {
+        if (route->getVehicleType() == vehicleType) {
+            QString routeText = QString("Маршрут %1: %2 → %3")
+                .arg(route->getNumber())
+                .arg(QString::fromStdString(route->getStartStop()))
+                .arg(QString::fromStdString(route->getEndStop()));
+            routeComboBox->addItem(routeText, route->getNumber());
+        }
+    }
+}
+
+void TransportScheduleDialog::populateSchedule(const std::string& vehicleType, int weekDay, int routeNumber) {
     scheduleTable->setRowCount(0);
     try {
         const auto& trips = transportSystem->getTrips();
-        
-        std::cout << "[DEBUG] TransportScheduleDialog: Количество рейсов: " << trips.size();
-        if (!vehicleType.empty()) {
-            std::cout << ", фильтр: " << vehicleType;
-        }
-        std::cout << std::endl;
         
         if (trips.empty()) {
             scheduleTable->insertRow(0);
             QTableWidgetItem* noDataItem = new QTableWidgetItem("Нет данных о рейсах.\nДобавьте рейсы через административный режим:\n'Добавление' -> 'Добавить рейс'");
             noDataItem->setTextAlignment(Qt::AlignCenter);
             scheduleTable->setItem(0, 0, noDataItem);
-            scheduleTable->setSpan(0, 0, 1, 6);
+            scheduleTable->setSpan(0, 0, 1, 7);
             scheduleTable->setRowHeight(0, 60);
             return;
         }
+        
+        QStringList dayNames = {"", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
+        QStringList dayShortNames = {"", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
         
         int validTripsCount = 0;
         for (const auto& trip : trips) {
             if (!trip) continue;
             
+            auto route = trip->getRoute();
+            if (!route) continue;
+            
             // Фильтрация по типу транспорта
-            if (!vehicleType.empty()) {
-                auto route = trip->getRoute();
-                if (!route || route->getVehicleType() != vehicleType) {
-                    continue;
-                }
+            if (route->getVehicleType() != vehicleType) {
+                continue;
+            }
+            
+            // Фильтрация по маршруту
+            if (routeNumber != 0 && route->getNumber() != routeNumber) {
+                continue;
+            }
+            
+            // Фильтрация по дню недели
+            int tripDay = trip->getWeekDay();
+            bool dayMatches = false;
+            if (weekDay == 0) {
+                // Все дни
+                dayMatches = true;
+            } else {
+                // Конкретный день: показываем только рейсы этого дня
+                dayMatches = (tripDay == weekDay);
+            }
+            
+            if (!dayMatches) {
+                continue;
             }
             
             try {
@@ -868,13 +993,7 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
                 scheduleTable->insertRow(row);
                 
                 scheduleTable->setItem(row, 0, new QTableWidgetItem(QString::number(trip->getTripId())));
-                
-                auto route = trip->getRoute();
-                if (route) {
-                    scheduleTable->setItem(row, 1, new QTableWidgetItem(QString::number(route->getNumber())));
-                } else {
-                    scheduleTable->setItem(row, 1, new QTableWidgetItem("N/A"));
-                }
+                scheduleTable->setItem(row, 1, new QTableWidgetItem(QString::number(route->getNumber())));
                 
                 auto vehicle = trip->getVehicle();
                 if (vehicle) {
@@ -895,9 +1014,26 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
                                                   .arg(startTime.getMinutes(), 2, 10, QChar('0'));
                 scheduleTable->setItem(row, 4, new QTableWidgetItem(timeStr));
                 
-                QStringList days = {"Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"};
-                int day = trip->getWeekDay();
-                scheduleTable->setItem(row, 5, new QTableWidgetItem(day >= 1 && day <= 7 ? days[day-1] : "?"));
+                scheduleTable->setItem(row, 5, new QTableWidgetItem(
+                    tripDay >= 1 && tripDay <= 7 ? dayShortNames[tripDay] : "?"));
+                
+                // Расписание остановок
+                const auto& schedule = trip->getSchedule();
+                QString scheduleText;
+                if (!schedule.empty()) {
+                    std::vector<std::pair<std::string, Time>> sortedSchedule(schedule.begin(), schedule.end());
+                    std::sort(sortedSchedule.begin(), sortedSchedule.end(),
+                              [](const auto& a, const auto& b) { return a.second < b.second; });
+                    for (const auto& [stop, time] : sortedSchedule) {
+                        if (!scheduleText.isEmpty()) scheduleText += "; ";
+                        QString timeStr = QString("%1:%2").arg(time.getHours(), 2, 10, QChar('0'))
+                                                          .arg(time.getMinutes(), 2, 10, QChar('0'));
+                        scheduleText += QString::fromStdString(stop) + " " + timeStr;
+                    }
+                } else {
+                    scheduleText = "не рассчитано";
+                }
+                scheduleTable->setItem(row, 6, new QTableWidgetItem(scheduleText));
                 
                 validTripsCount++;
             } catch (const std::exception& e) {
@@ -910,15 +1046,19 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
             scheduleTable->setRowCount(0);
             scheduleTable->insertRow(0);
             QString message;
-            if (!vehicleType.empty()) {
-                message = QString("Нет рейсов для транспорта типа '%1'").arg(QString::fromStdString(vehicleType));
+            if (weekDay > 0 && weekDay <= 7) {
+                message = QString("Нет рейсов для транспорта типа '%1' на %2")
+                    .arg(QString::fromStdString(vehicleType))
+                    .arg(dayNames[weekDay]);
+            } else if (routeNumber > 0) {
+                message = QString("Нет рейсов для маршрута %1").arg(routeNumber);
             } else {
-                message = "Ошибка при загрузке данных о рейсах";
+                message = QString("Нет рейсов для транспорта типа '%1'").arg(QString::fromStdString(vehicleType));
             }
             QTableWidgetItem* errorItem = new QTableWidgetItem(message);
             errorItem->setTextAlignment(Qt::AlignCenter);
             scheduleTable->setItem(0, 0, errorItem);
-            scheduleTable->setSpan(0, 0, 1, 6);
+            scheduleTable->setSpan(0, 0, 1, 7);
         } else {
             // Автоматически подгоняем ширину колонок
             scheduleTable->resizeColumnsToContents();
@@ -929,7 +1069,7 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
         QTableWidgetItem* errorItem = new QTableWidgetItem(QString("Ошибка: %1").arg(e.what()));
         errorItem->setTextAlignment(Qt::AlignCenter);
         scheduleTable->setItem(0, 0, errorItem);
-        scheduleTable->setSpan(0, 0, 1, 6);
+        scheduleTable->setSpan(0, 0, 1, 7);
     }
 }
 
@@ -938,28 +1078,44 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType) {
 StopTimetableDialog::StopTimetableDialog(TransportSystem* system, QWidget *parent)
     : QDialog(parent), transportSystem(system) {
     setWindowTitle("Расписание остановки");
-    setMinimumSize(700, 500);
+    setMinimumSize(800, 600);
     
     QVBoxLayout* layout = new QVBoxLayout(this);
     
     QLabel* stopLabel = new QLabel("Выберите остановку:", this);
     stopComboBox = new QComboBox(this);
     
+    // Выбор дня недели
+    QLabel* weekDayLabel = new QLabel("Выберите день недели:", this);
+    weekDayComboBox = new QComboBox(this);
+    weekDayComboBox->addItem("Все дни", 0);
+    weekDayComboBox->addItem("Понедельник", 1);
+    weekDayComboBox->addItem("Вторник", 2);
+    weekDayComboBox->addItem("Среда", 3);
+    weekDayComboBox->addItem("Четверг", 4);
+    weekDayComboBox->addItem("Пятница", 5);
+    weekDayComboBox->addItem("Суббота", 6);
+    weekDayComboBox->addItem("Воскресенье", 7);
+    
     timetableTable = new QTableWidget(this);
-    timetableTable->setColumnCount(4);
+    timetableTable->setColumnCount(5);
     timetableTable->setHorizontalHeaderLabels(QStringList() << "Рейс" << "Маршрут" 
-        << "Время прибытия" << "Транспорт");
+        << "Время прибытия" << "Транспорт" << "Водитель");
     timetableTable->horizontalHeader()->setStretchLastSection(true);
     
     QPushButton* closeBtn = new QPushButton("Закрыть", this);
     
     layout->addWidget(stopLabel);
     layout->addWidget(stopComboBox);
+    layout->addWidget(weekDayLabel);
+    layout->addWidget(weekDayComboBox);
     layout->addWidget(timetableTable);
     layout->addWidget(closeBtn);
     
     connect(stopComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), 
             this, &StopTimetableDialog::onStopSelected);
+    connect(weekDayComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &StopTimetableDialog::onWeekDayChanged);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     
     populateStops();
@@ -972,7 +1128,9 @@ void StopTimetableDialog::populateStops() {
         stopComboBox->addItem(QString::fromStdString(stop.getName()), stop.getId());
     }
     if (stopComboBox->count() > 0) {
-        onStopSelected();
+        int weekDay = weekDayComboBox->currentData().toInt();
+        QString stopName = stopComboBox->currentText();
+        populateTimetable(stopName.toStdString(), weekDay);
     }
 }
 
@@ -980,64 +1138,105 @@ void StopTimetableDialog::onStopSelected() {
     int index = stopComboBox->currentIndex();
     if (index >= 0) {
         QString stopName = stopComboBox->currentText();
-        populateTimetable(stopName.toStdString());
+        int weekDay = weekDayComboBox->currentData().toInt();
+        populateTimetable(stopName.toStdString(), weekDay);
     }
 }
 
-void StopTimetableDialog::populateTimetable(const std::string& stopName) {
+void StopTimetableDialog::onWeekDayChanged() {
+    int index = stopComboBox->currentIndex();
+    if (index >= 0) {
+        QString stopName = stopComboBox->currentText();
+        int weekDay = weekDayComboBox->currentData().toInt();
+        populateTimetable(stopName.toStdString(), weekDay);
+    }
+}
+
+void StopTimetableDialog::populateTimetable(const std::string& stopName, int weekDay) {
     timetableTable->setRowCount(0);
     
     try {
-        const auto& trips = transportSystem->getTripsThroughStop(stopName);
-        
-        if (trips.empty()) {
-            timetableTable->insertRow(0);
-            QTableWidgetItem* noDataItem = new QTableWidgetItem("Нет рейсов через эту остановку");
-            noDataItem->setTextAlignment(Qt::AlignCenter);
-            timetableTable->setItem(0, 0, noDataItem);
-            timetableTable->setSpan(0, 0, 1, 4); // Объединяем ячейки
-            return;
-        }
-        
-        // Собираем все рейсы с временем прибытия
-        std::vector<std::pair<std::shared_ptr<Trip>, Time>> tripsWithTime;
+        const auto& trips = transportSystem->getTrips();
+        std::vector<std::pair<int, std::pair<int, Time>>> relevantTrips; // tripId, routeNumber, time
+
         for (const auto& trip : trips) {
-            if (trip->hasStop(stopName)) {
-                try {
-                    Time arrivalTime = trip->getArrivalTime(stopName);
-                    tripsWithTime.push_back({trip, arrivalTime});
-                } catch (...) {
-                    // Если время не установлено, пропускаем этот рейс
-                    continue;
-                }
+            if (!trip->hasStop(stopName)) {
+                continue;
+            }
+            
+            // Фильтрация по дню недели
+            int tripDay = trip->getWeekDay();
+            bool dayMatches = false;
+            if (weekDay == 0) {
+                // Все дни
+                dayMatches = true;
+            } else {
+                // Конкретный день: показываем только рейсы этого дня
+                dayMatches = (tripDay == weekDay);
+            }
+            
+            if (!dayMatches) {
+                continue;
+            }
+            
+            try {
+                Time arrivalTime = trip->getArrivalTime(stopName);
+                relevantTrips.push_back({trip->getTripId(), {trip->getRoute()->getNumber(), arrivalTime}});
+            } catch (...) {
+                // Если время не установлено, пропускаем этот рейс
+                continue;
             }
         }
-        
-        if (tripsWithTime.empty()) {
+
+        std::sort(relevantTrips.begin(), relevantTrips.end(),
+                  [](const auto& a, const auto& b) { return a.second.second < b.second.second; });
+
+        if (relevantTrips.empty()) {
             timetableTable->insertRow(0);
-            QTableWidgetItem* noDataItem = new QTableWidgetItem("Нет данных о времени прибытия для этой остановки");
+            QStringList dayNames = {"", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
+            QString message;
+            if (weekDay > 0 && weekDay <= 7) {
+                message = QString("Рейсов не найдено для остановки '%1' на %2.")
+                    .arg(QString::fromStdString(stopName))
+                    .arg(dayNames[weekDay]);
+            } else {
+                message = QString("Рейсов не найдено для остановки '%1'.").arg(QString::fromStdString(stopName));
+            }
+            QTableWidgetItem* noDataItem = new QTableWidgetItem(message);
             noDataItem->setTextAlignment(Qt::AlignCenter);
             timetableTable->setItem(0, 0, noDataItem);
-            timetableTable->setSpan(0, 0, 1, 4);
+            timetableTable->setSpan(0, 0, 1, 5);
             return;
         }
         
-        // Сортируем по времени прибытия
-        std::sort(tripsWithTime.begin(), tripsWithTime.end(),
-                  [](const auto& a, const auto& b) { return a.second < b.second; });
-        
-        for (const auto& [trip, arrivalTime] : tripsWithTime) {
-            int row = timetableTable->rowCount();
-            timetableTable->insertRow(row);
-            
-            timetableTable->setItem(row, 0, new QTableWidgetItem(QString::number(trip->getTripId())));
-            timetableTable->setItem(row, 1, new QTableWidgetItem(QString::number(trip->getRoute()->getNumber())));
-            
-            QString timeStr = QString("%1:%2").arg(arrivalTime.getHours(), 2, 10, QChar('0'))
-                                              .arg(arrivalTime.getMinutes(), 2, 10, QChar('0'));
-            timetableTable->setItem(row, 2, new QTableWidgetItem(timeStr));
-            
-            timetableTable->setItem(row, 3, new QTableWidgetItem(QString::fromStdString(trip->getVehicle()->getLicensePlate())));
+        for (const auto& [tripId, routeTime] : relevantTrips) {
+            auto tripIt = std::find_if(trips.begin(), trips.end(),
+                                      [tripId](const auto& t) { return t->getTripId() == tripId; });
+            if (tripIt != trips.end()) {
+                auto trip = *tripIt;
+                int row = timetableTable->rowCount();
+                timetableTable->insertRow(row);
+                
+                timetableTable->setItem(row, 0, new QTableWidgetItem(QString::number(tripId)));
+                timetableTable->setItem(row, 1, new QTableWidgetItem(
+                    QString("%1 (%2)").arg(routeTime.first).arg(QString::fromStdString(trip->getRoute()->getVehicleType()))));
+                
+                QString timeStr = QString("%1:%2").arg(routeTime.second.getHours(), 2, 10, QChar('0'))
+                                                  .arg(routeTime.second.getMinutes(), 2, 10, QChar('0'));
+                timetableTable->setItem(row, 2, new QTableWidgetItem(timeStr));
+                
+                timetableTable->setItem(row, 3, new QTableWidgetItem(QString::fromStdString(trip->getVehicle()->getInfo())));
+                timetableTable->setItem(row, 4, new QTableWidgetItem(QString::fromStdString(trip->getDriver()->getFullName())));
+            } else {
+                int row = timetableTable->rowCount();
+                timetableTable->insertRow(row);
+                timetableTable->setItem(row, 0, new QTableWidgetItem(QString::number(tripId)));
+                timetableTable->setItem(row, 1, new QTableWidgetItem(QString::number(routeTime.first)));
+                
+                QString timeStr = QString("%1:%2").arg(routeTime.second.getHours(), 2, 10, QChar('0'))
+                                                  .arg(routeTime.second.getMinutes(), 2, 10, QChar('0'));
+                timetableTable->setItem(row, 2, new QTableWidgetItem(timeStr));
+            }
         }
         
         // Автоматически подгоняем ширину колонок
@@ -1048,7 +1247,7 @@ void StopTimetableDialog::populateTimetable(const std::string& stopName) {
         QTableWidgetItem* errorItem = new QTableWidgetItem(QString("Ошибка: %1").arg(e.what()));
         errorItem->setTextAlignment(Qt::AlignCenter);
         timetableTable->setItem(0, 0, errorItem);
-        timetableTable->setSpan(0, 0, 1, 4);
+        timetableTable->setSpan(0, 0, 1, 5);
         QMessageBox::warning(this, "Ошибка", QString("Ошибка при получении расписания: %1").arg(e.what()));
     }
 }
@@ -1068,6 +1267,9 @@ RouteSearchDialog::RouteSearchDialog(TransportSystem* system, QWidget *parent)
     QLabel* stopBLabel = new QLabel("Остановка B:", this);
     stopBComboBox = new QComboBox(this);
     
+    includeTransfersCheckBox = new QCheckBox("Искать маршруты с пересадками", this);
+    includeTransfersCheckBox->setChecked(false);
+    
     QPushButton* searchBtn = new QPushButton("Поиск", this);
     
     resultsText = new QTextEdit(this);
@@ -1079,6 +1281,7 @@ RouteSearchDialog::RouteSearchDialog(TransportSystem* system, QWidget *parent)
     layout->addWidget(stopAComboBox);
     layout->addWidget(stopBLabel);
     layout->addWidget(stopBComboBox);
+    layout->addWidget(includeTransfersCheckBox);
     layout->addWidget(searchBtn);
     layout->addWidget(resultsText);
     layout->addWidget(closeBtn);
@@ -1111,21 +1314,149 @@ void RouteSearchDialog::onSearchClicked() {
     }
     
     try {
+        resultsText->clear();
+        
+        // Сначала ищем прямые маршруты
         auto routes = transportSystem->findRoutes(stopA.toStdString(), stopB.toStdString());
         
-        resultsText->clear();
-        if (routes.empty()) {
-            resultsText->append("Маршруты не найдены.");
-        } else {
-            resultsText->append(QString("Найдено маршрутов: %1\n\n").arg(routes.size()));
+        if (!routes.empty()) {
+            resultsText->append("========================================\n");
+            resultsText->append("Прямые маршруты:\n");
+            resultsText->append("========================================\n\n");
+            resultsText->append(QString("Найдено прямых маршрутов: %1\n\n").arg(routes.size()));
+            
             for (const auto& route : routes) {
-                resultsText->append(QString("Маршрут №%1 (%2)\n")
+                resultsText->append(QString("Маршрут %1 (%2)\n")
                     .arg(route->getNumber())
                     .arg(QString::fromStdString(route->getVehicleType())));
-                resultsText->append(QString("  От: %1\n")
-                    .arg(QString::fromStdString(route->getStartStop())));
-                resultsText->append(QString("  До: %1\n\n")
-                    .arg(QString::fromStdString(route->getEndStop())));
+                
+                const auto& allStops = route->getAllStops();
+                int startPos = route->getStopPosition(stopA.toStdString());
+                int endPos = route->getStopPosition(stopB.toStdString());
+                
+                if (startPos != -1 && endPos != -1 && startPos < endPos) {
+                    QString path = QString::fromStdString(allStops[startPos]);
+                    for (int i = startPos + 1; i <= endPos; i++) {
+                        path += " → " + QString::fromStdString(allStops[i]);
+                    }
+                    resultsText->append(QString("Путь: %1\n\n").arg(path));
+                }
+            }
+        } else {
+            resultsText->append("Прямых маршрутов не найдено.\n\n");
+        }
+        
+        // Ищем маршруты с пересадками, если пользователь выбрал эту опцию или если прямых маршрутов нет
+        bool shouldSearchTransfers = includeTransfersCheckBox->isChecked() || routes.empty();
+        
+        if (shouldSearchTransfers) {
+            if (routes.empty()) {
+                resultsText->append("\nПрямых маршрутов не найдено. Ищем маршруты с пересадками...\n\n");
+            } else {
+                resultsText->append("\n========================================\n");
+                resultsText->append("Маршруты с пересадками:\n");
+                resultsText->append("========================================\n\n");
+            }
+            
+            try {
+                auto& planner = transportSystem->getJourneyPlanner();
+                auto journeys = planner.findAllJourneysWithTransfers(
+                    stopA.toStdString(), stopB.toStdString(), 2);
+                
+                if (journeys.empty()) {
+                    resultsText->append("Маршрутов с пересадками не найдено.\n");
+                } else {
+                    // Фильтруем уникальные варианты по комбинации маршрутов и точек пересадки
+                    std::vector<Journey> uniqueJourneys;
+                    std::set<std::string> seenRoutes;
+                    
+                    for (const auto& journey : journeys) {
+                        // Создаем уникальный ключ: последовательность номеров маршрутов + точки пересадки
+                        std::string routeKey;
+                        const auto& trips = journey.getTrips();
+                        const auto& transferPoints = journey.getTransferPoints();
+                        
+                        for (size_t i = 0; i < trips.size(); ++i) {
+                            routeKey += std::to_string(trips[i]->getRoute()->getNumber());
+                            if (i < transferPoints.size()) {
+                                routeKey += "@" + transferPoints[i] + "@";
+                            }
+                        }
+                        
+                        // Добавляем только если такой комбинации еще не было
+                        if (seenRoutes.find(routeKey) == seenRoutes.end()) {
+                            seenRoutes.insert(routeKey);
+                            uniqueJourneys.push_back(journey);
+                        }
+                    }
+                    
+                    if (uniqueJourneys.empty()) {
+                        resultsText->append("Маршрутов с пересадками не найдено.\n");
+                    } else {
+                        resultsText->append("========================================\n\n");
+                        
+                        // Показываем до 5 уникальных вариантов
+                        int count = std::min(5, static_cast<int>(uniqueJourneys.size()));
+                        for (int i = 0; i < count; ++i) {
+                            resultsText->append(QString("--- Вариант %1 ---\n").arg(i + 1));
+                            const auto& journey = uniqueJourneys[i];
+                            
+                            resultsText->append(QString("Пересадок: %1\n").arg(journey.getTransferCount()));
+                            resultsText->append(QString("Общее время в пути: %1 минут\n").arg(journey.getTotalDuration()));
+                            
+                            Time startTime = journey.getStartTime();
+                            Time endTime = journey.getEndTime();
+                            QString startTimeStr = QString("%1:%2")
+                                .arg(startTime.getHours(), 2, 10, QChar('0'))
+                                .arg(startTime.getMinutes(), 2, 10, QChar('0'));
+                            QString endTimeStr = QString("%1:%2")
+                                .arg(endTime.getHours(), 2, 10, QChar('0'))
+                                .arg(endTime.getMinutes(), 2, 10, QChar('0'));
+                            
+                            resultsText->append(QString("Время отправления: %1\n").arg(startTimeStr));
+                            resultsText->append(QString("Время прибытия: %1\n").arg(endTimeStr));
+                            
+                            const auto& trips = journey.getTrips();
+                            const auto& transferPoints = journey.getTransferPoints();
+                            
+                            resultsText->append("\nПуть:\n");
+                            resultsText->append("  " + stopA);
+                            
+                            for (size_t j = 0; j < trips.size(); ++j) {
+                                const auto& trip = trips[j];
+                                const auto& route = trip->getRoute();
+                                const auto& routeStops = route->getAllStops();
+                                
+                                // Определяем начальную и конечную остановки для этого участка
+                                std::string segmentStart = (j == 0) ? stopA.toStdString() : transferPoints[j - 1];
+                                std::string segmentEnd = (j < transferPoints.size()) ? transferPoints[j] : stopB.toStdString();
+                                
+                                int startPos = route->getStopPosition(segmentStart);
+                                int endPos = route->getStopPosition(segmentEnd);
+                                
+                                if (startPos != -1 && endPos != -1 && startPos < endPos) {
+                                    for (int k = startPos + 1; k <= endPos; ++k) {
+                                        resultsText->append(" → " + QString::fromStdString(routeStops[k]));
+                                    }
+                                }
+                                
+                                resultsText->append(QString(" [Маршрут %1 (%2)]")
+                                    .arg(route->getNumber())
+                                    .arg(QString::fromStdString(route->getVehicleType())));
+                                
+                                if (j < transferPoints.size()) {
+                                    resultsText->append(QString("\n  Пересадка на остановке: %1\n")
+                                        .arg(QString::fromStdString(transferPoints[j])));
+                                    resultsText->append("  " + QString::fromStdString(transferPoints[j]));
+                                }
+                            }
+                            resultsText->append("\n\n");
+                        }
+                        resultsText->append("========================================\n");
+                    }
+                }
+            } catch (const std::exception& e) {
+                resultsText->append(QString("Ошибка при поиске маршрутов с пересадками: %1\n").arg(e.what()));
             }
         }
     } catch (const std::exception& e) {
@@ -1295,7 +1626,12 @@ AddTripDialog::AddTripDialog(TransportSystem* system, QWidget *parent)
     vehicleComboBox = new QComboBox(this);
     
     QLabel* driverLabel = new QLabel("Водитель:", this);
+    QHBoxLayout* driverLayout = new QHBoxLayout();
     driverComboBox = new QComboBox(this);
+    QPushButton* addDriverBtn = new QPushButton("+ Добавить", this);
+    addDriverBtn->setMaximumWidth(100);
+    driverLayout->addWidget(driverComboBox);
+    driverLayout->addWidget(addDriverBtn);
     
     QLabel* timeLabel = new QLabel("Время начала:", this);
     startTimeEdit = new QTimeEdit(this);
@@ -1317,7 +1653,7 @@ AddTripDialog::AddTripDialog(TransportSystem* system, QWidget *parent)
     layout->addWidget(vehicleLabel);
     layout->addWidget(vehicleComboBox);
     layout->addWidget(driverLabel);
-    layout->addWidget(driverComboBox);
+    layout->addLayout(driverLayout);
     layout->addWidget(timeLabel);
     layout->addWidget(startTimeEdit);
     layout->addWidget(dayLabel);
@@ -1327,29 +1663,98 @@ AddTripDialog::AddTripDialog(TransportSystem* system, QWidget *parent)
     
     connect(addBtn, &QPushButton::clicked, this, &AddTripDialog::onAddClicked);
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
+    connect(addDriverBtn, &QPushButton::clicked, this, &AddTripDialog::onAddDriverClicked);
+    connect(routeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &AddTripDialog::onRouteChanged);
     
     populateData();
+    if (routeComboBox->count() > 0) {
+        onRouteChanged(); // Инициализируем транспорт и водителей для первого маршрута
+    }
 }
 
 void AddTripDialog::populateData() {
     routeComboBox->clear();
     const auto& routes = transportSystem->getRoutes();
     for (const auto& route : routes) {
-        routeComboBox->addItem(QString("Маршрут %1").arg(route->getNumber()), route->getNumber());
+        QString routeText = QString("Маршрут %1 (%2)").arg(route->getNumber())
+                                                      .arg(QString::fromStdString(route->getVehicleType()));
+        routeComboBox->addItem(routeText, route->getNumber());
+    }
+}
+
+void AddTripDialog::onRouteChanged() {
+    int routeNumber = routeComboBox->currentData().toInt();
+    auto route = transportSystem->getRouteByNumber(routeNumber);
+    if (!route) {
+        vehicleComboBox->clear();
+        driverComboBox->clear();
+        return;
     }
     
+    std::string vehicleType = route->getVehicleType();
+    populateVehicles(vehicleType);
+    populateDrivers(vehicleType);
+}
+
+void AddTripDialog::populateVehicles(const std::string& vehicleType) {
     vehicleComboBox->clear();
     const auto& vehicles = transportSystem->getVehicles();
     for (const auto& vehicle : vehicles) {
-        vehicleComboBox->addItem(QString::fromStdString(vehicle->getLicensePlate()));
+        // Проверяем тип транспорта
+        if (vehicle->getType() == vehicleType) {
+            vehicleComboBox->addItem(QString::fromStdString(vehicle->getLicensePlate()));
+        }
     }
-    
+}
+
+void AddTripDialog::populateDrivers(const std::string& vehicleType) {
     driverComboBox->clear();
     const auto& drivers = transportSystem->getDrivers();
+    
+    // Определяем нужные категории для типа транспорта
+    std::set<std::string> requiredCategories;
+    if (vehicleType == "Автобус") {
+        requiredCategories.insert("D");
+        requiredCategories.insert("DT");
+    } else if (vehicleType == "Трамвай" || vehicleType == "Троллейбус") {
+        requiredCategories.insert("T");
+        requiredCategories.insert("DT");
+    }
+    
     for (size_t i = 0; i < drivers.size(); ++i) {
-        // Сохраняем индекс водителя в userData для прямого доступа
-        driverComboBox->addItem(QString::fromStdString(drivers[i]->getFullName()), 
-                                static_cast<int>(i));
+        std::string category = drivers[i]->getCategory();
+        // Если категория пустая или соответствует требованиям
+        if (category.empty() || requiredCategories.find(category) != requiredCategories.end()) {
+            driverComboBox->addItem(QString::fromStdString(drivers[i]->getFullName()), 
+                                    static_cast<int>(i));
+        }
+    }
+}
+
+void AddTripDialog::onAddDriverClicked() {
+    AddDriverDialog dialog(transportSystem, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        // Обновляем список водителей после добавления нового
+        int routeNumber = routeComboBox->currentData().toInt();
+        auto route = transportSystem->getRouteByNumber(routeNumber);
+        if (route) {
+            std::string vehicleType = route->getVehicleType();
+            populateDrivers(vehicleType);
+            
+            // Выбираем последнего добавленного водителя (он будет последним в списке)
+            const auto& drivers = transportSystem->getDrivers();
+            if (!drivers.empty()) {
+                // Ищем индекс последнего водителя в комбобоксе
+                for (int i = driverComboBox->count() - 1; i >= 0; --i) {
+                    int driverIndex = driverComboBox->itemData(i).toInt();
+                    if (driverIndex >= 0 && driverIndex < static_cast<int>(drivers.size())) {
+                        driverComboBox->setCurrentIndex(i);
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1417,8 +1822,11 @@ void AddVehicleDialog::setupUI() {
     QLabel* modelLabel = new QLabel("Модель:", this);
     modelEdit = new QLineEdit(this);
     
-    QLabel* capacityLabel = new QLabel("Вместимость:", this);
-    capacityEdit = new QLineEdit(this);
+    QLabel* capacityLabel = new QLabel("Вместимость (макс. 60):", this);
+    capacityEdit = new QSpinBox(this);
+    capacityEdit->setMinimum(1);
+    capacityEdit->setMaximum(60);
+    capacityEdit->setValue(30);
     
     fuelWidget = new QWidget(this);
     QVBoxLayout* fuelLayout = new QVBoxLayout(fuelWidget);
@@ -1474,11 +1882,16 @@ void AddVehicleDialog::onAddClicked() {
     try {
         QString plate = licensePlateEdit->text();
         QString model = modelEdit->text();
-        int capacity = capacityEdit->text().toInt();
+        int capacity = capacityEdit->value();
         QString type = vehicleTypeComboBox->currentText();
         
-        if (plate.isEmpty() || model.isEmpty() || capacity <= 0) {
-            QMessageBox::warning(this, "Ошибка", "Заполните все поля корректно.");
+        if (plate.isEmpty() || model.isEmpty()) {
+            QMessageBox::warning(this, "Ошибка", "Заполните все обязательные поля.");
+            return;
+        }
+        
+        if (capacity < 1 || capacity > 60) {
+            QMessageBox::warning(this, "Ошибка", "Вместимость должна быть от 1 до 60 человек.");
             return;
         }
         
@@ -1568,7 +1981,7 @@ void AddStopDialog::onAddClicked() {
 AddDriverDialog::AddDriverDialog(TransportSystem* system, QWidget *parent)
     : QDialog(parent), transportSystem(system) {
     setWindowTitle("Добавление водителя");
-    setMinimumSize(350, 200);
+    setMinimumSize(350, 250);
     
     QVBoxLayout* layout = new QVBoxLayout(this);
     
@@ -1581,6 +1994,13 @@ AddDriverDialog::AddDriverDialog(TransportSystem* system, QWidget *parent)
     QLabel* middleNameLabel = new QLabel("Отчество:", this);
     middleNameEdit = new QLineEdit(this);
     
+    QLabel* categoryLabel = new QLabel("Категория водительских прав:", this);
+    categoryComboBox = new QComboBox(this);
+    categoryComboBox->addItem("D - Автобусы", "D");
+    categoryComboBox->addItem("T - Трамваи и троллейбусы", "T");
+    categoryComboBox->addItem("D и T - Универсальная", "DT");
+    categoryComboBox->setCurrentIndex(0); // По умолчанию D
+    
     QPushButton* addBtn = new QPushButton("Добавить", this);
     QPushButton* cancelBtn = new QPushButton("Отмена", this);
     
@@ -1590,6 +2010,8 @@ AddDriverDialog::AddDriverDialog(TransportSystem* system, QWidget *parent)
     layout->addWidget(lastNameEdit);
     layout->addWidget(middleNameLabel);
     layout->addWidget(middleNameEdit);
+    layout->addWidget(categoryLabel);
+    layout->addWidget(categoryComboBox);
     layout->addWidget(addBtn);
     layout->addWidget(cancelBtn);
     
@@ -1602,16 +2024,23 @@ void AddDriverDialog::onAddClicked() {
         QString firstName = firstNameEdit->text();
         QString lastName = lastNameEdit->text();
         QString middleName = middleNameEdit->text();
+        QString category = categoryComboBox->currentData().toString();
         
         if (firstName.isEmpty() || lastName.isEmpty()) {
             QMessageBox::warning(this, "Ошибка", "Заполните обязательные поля (Имя и Фамилия).");
             return;
         }
         
+        if (category.isEmpty()) {
+            QMessageBox::warning(this, "Ошибка", "Выберите категорию водительских прав.");
+            return;
+        }
+        
         auto driver = std::make_shared<Driver>(
             firstName.toStdString(),
             lastName.toStdString(),
-            middleName.toStdString()
+            middleName.toStdString(),
+            category.toStdString()
         );
         
         transportSystem->addDriver(driver);

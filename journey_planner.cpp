@@ -2,6 +2,7 @@
 #include "transport_system.h"
 #include <queue>
 #include <algorithm>
+#include <set>
 #include "exceptions.h"
 
 JourneyPlanner::JourneyPlanner(TransportSystem* sys) 
@@ -39,19 +40,34 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
     auto initialTrips = system->getTripsThroughStop(startStop);
 
-    std::sort(initialTrips.begin(), initialTrips.end(),
+    // Фильтруем только рейсы с рассчитанным временем прибытия
+    std::vector<std::shared_ptr<Trip>> validInitialTrips;
+    for (const auto& trip : initialTrips) {
+        if (trip->hasStop(startStop)) {
+            validInitialTrips.push_back(trip);
+        }
+    }
+
+    std::sort(validInitialTrips.begin(), validInitialTrips.end(),
               [&startStop](const auto& a, const auto& b) {
                   return a->getArrivalTime(startStop) < b->getArrivalTime(startStop);
               });
 
     std::queue<SearchNode> q;
+    // Используем set для отслеживания уже посещенных комбинаций (остановка + количество пересадок)
+    // чтобы избежать бесконечных циклов
+    std::set<std::pair<std::string, int>> visited;
+    // Ограничение на количество итераций для предотвращения зависания
+    const int MAX_ITERATIONS = 10000;
+    int iterations = 0;
 
-    for (const auto& trip : initialTrips) {
+    for (const auto& trip : validInitialTrips) {
         Time arrivalAtStart = trip->getArrivalTime(startStop);
         q.push({startStop, arrivalAtStart, arrivalAtStart, {}, {}, 0});
     }
 
-    while (!q.empty()) {
+    while (!q.empty() && iterations < MAX_ITERATIONS) {
+        iterations++;
         auto node = q.front();
         q.pop();
 
@@ -65,15 +81,28 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
             continue;
         }
 
+        // Проверяем, не посещали ли мы уже эту остановку с таким же количеством пересадок
+        auto visitKey = std::make_pair(node.currentStop, node.transfers);
+        if (visited.find(visitKey) != visited.end()) {
+            continue;
+        }
+        visited.insert(visitKey);
+
         auto trips = system->getTripsThroughStop(node.currentStop);
 
         for (const auto& trip : trips) {
+            // Проверяем, что время прибытия рассчитано для текущей остановки
+            if (!trip->hasStop(node.currentStop)) {
+                continue;
+            }
+
             Time arrivalAtStop = trip->getArrivalTime(node.currentStop);
 
             if (node.currentStop != startStop && arrivalAtStop < node.currentTime) {
                 continue;
             }
 
+            // Проверяем, что мы не используем тот же рейс дважды подряд
             if (!node.pathTrips.empty() && node.pathTrips.back() == trip) {
                 continue;
             }
@@ -85,6 +114,12 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
+                
+                // Проверяем, что время прибытия рассчитано для следующей остановки
+                if (!trip->hasStop(nextStop)) {
+                    continue;
+                }
+                
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
                 SearchNode nextNode = node;
@@ -96,7 +131,8 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
                     nextNode.startTime = arrivalAtStop;
                 }
 
-                if (!node.pathTrips.empty()) {
+                // Пересадка считается только если мы переходим на другой рейс
+                if (!node.pathTrips.empty() && node.pathTrips.back() != trip) {
                     nextNode.transferPoints.push_back(node.currentStop);
                     nextNode.transfers++;
                 }

@@ -107,6 +107,7 @@ private slots:
     void viewAllData();
     void saveData();
     void undoLastAction();
+    void redoLastAction();
     void backToMain();
 
 private:
@@ -153,12 +154,18 @@ public:
 
 private slots:
     void onVehicleTypeChanged();
+    void onWeekDayChanged();
+    void onRouteChanged();
+    void onFilterChanged();
 
 private:
     TransportSystem* transportSystem;
     QComboBox* vehicleTypeComboBox;
+    QComboBox* routeComboBox;
+    QComboBox* weekDayComboBox;
     QTableWidget* scheduleTable;
-    void populateSchedule(const std::string& vehicleType = "");
+    void populateSchedule(const std::string& vehicleType = "", int weekDay = 0, int routeNumber = 0);
+    void populateRoutes(const std::string& vehicleType);
 };
 
 // Диалог расписания остановки
@@ -170,13 +177,15 @@ public:
 
 private slots:
     void onStopSelected();
+    void onWeekDayChanged();
 
 private:
     TransportSystem* transportSystem;
     QComboBox* stopComboBox;
+    QComboBox* weekDayComboBox;
     QTableWidget* timetableTable;
     void populateStops();
-    void populateTimetable(const std::string& stopName);
+    void populateTimetable(const std::string& stopName, int weekDay = 0);
 };
 
 // Диалог поиска маршрутов
@@ -193,6 +202,7 @@ private:
     TransportSystem* transportSystem;
     QComboBox* stopAComboBox;
     QComboBox* stopBComboBox;
+    QCheckBox* includeTransfersCheckBox;
     QTextEdit* resultsText;
     void populateStops();
 };
@@ -234,6 +244,8 @@ public:
 
 private slots:
     void onAddClicked();
+    void onRouteChanged();
+    void onAddDriverClicked();
 
 private:
     TransportSystem* transportSystem;
@@ -244,6 +256,8 @@ private:
     QTimeEdit* startTimeEdit;
     QSpinBox* weekDaySpinBox;
     void populateData();
+    void populateVehicles(const std::string& vehicleType);
+    void populateDrivers(const std::string& vehicleType);
 };
 
 // Диалог добавления транспортного средства
@@ -262,7 +276,7 @@ private:
     QComboBox* vehicleTypeComboBox;
     QLineEdit* licensePlateEdit;
     QLineEdit* modelEdit;
-    QLineEdit* capacityEdit;
+    QSpinBox* capacityEdit;
     QLineEdit* fuelCapacityEdit; // для автобуса
     QLineEdit* batteryCapacityEdit; // для трамвая/троллейбуса
     QWidget* fuelWidget;
@@ -301,6 +315,7 @@ private:
     QLineEdit* firstNameEdit;
     QLineEdit* lastNameEdit;
     QLineEdit* middleNameEdit;
+    QComboBox* categoryComboBox;
 };
 
 // Диалог расчета времени прибытия

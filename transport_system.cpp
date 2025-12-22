@@ -23,8 +23,24 @@ void TransportSystem::undo() {
     std::cout << "Действие отменено.\n";
 }
 
+bool TransportSystem::canRedo() const {
+    return commandHistory.canRedo();
+}
+
+void TransportSystem::redo() {
+    if (!canRedo()) {
+        throw ContainerException("Нет действий для повтора");
+    }
+    commandHistory.redo();
+    std::cout << "Действие повторено.\n";
+}
+
 std::string TransportSystem::getLastCommandDescription() const {
     return commandHistory.getLastCommandDescription();
+}
+
+std::string TransportSystem::getNextCommandDescription() const {
+    return commandHistory.getNextCommandDescription();
 }
 
 bool TransportSystem::authenticateAdmin(const std::string& username, const std::string& password) {
@@ -138,6 +154,17 @@ void TransportSystem::addTrip(std::shared_ptr<Trip> trip) {
     for (const auto& existingTrip : trips) {
         if (existingTrip->getTripId() == trip->getTripId()) {
             throw ContainerException("Рейс с ID " + std::to_string(trip->getTripId()) + " уже существует");
+        }
+    }
+
+    // Проверяем, что день недели рейса соответствует дням недели маршрута
+    auto route = trip->getRoute();
+    if (route) {
+        int tripWeekDay = trip->getWeekDay();
+        if (!route->operatesOnDay(tripWeekDay)) {
+            throw ContainerException("Рейс не может быть создан: маршрут №" + 
+                std::to_string(route->getNumber()) + " не работает в день недели " + 
+                std::to_string(tripWeekDay));
         }
     }
 

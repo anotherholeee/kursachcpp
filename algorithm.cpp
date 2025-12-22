@@ -37,6 +37,11 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
         auto trips = system->getTripsThroughStop(node.currentStop);
 
         for (const auto& trip : trips) {
+            // Проверяем, что время прибытия рассчитано для текущей остановки
+            if (!trip->hasStop(node.currentStop)) {
+                continue;
+            }
+
             Time arrivalAtStop = trip->getArrivalTime(node.currentStop);
 
             if (arrivalAtStop < node.currentTime) {
@@ -54,6 +59,12 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
 
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
+                
+                // Проверяем, что время прибытия рассчитано для следующей остановки
+                if (!trip->hasStop(nextStop)) {
+                    continue;
+                }
+                
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
                 SearchNode nextNode = node;
@@ -61,7 +72,8 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
                 nextNode.currentTime = arrivalAtNext;
                 nextNode.pathTrips.push_back(trip);
 
-                if (!node.pathTrips.empty()) {
+                // Пересадка считается только если мы переходим на другой рейс
+                if (!node.pathTrips.empty() && node.pathTrips.back() != trip) {
                     nextNode.transferPoints.push_back(node.currentStop);
                     nextNode.transfers++;
                 }

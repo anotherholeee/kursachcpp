@@ -276,7 +276,7 @@ void adminAddStop(TransportSystem& system) {
 
 void adminAddDriver(TransportSystem& system) {
     try {
-        std::string firstName, lastName, middleName;
+        std::string firstName, lastName, middleName, category;
 
         std::cout << "Введите имя водителя: ";
         std::getline(std::cin, firstName);
@@ -284,8 +284,10 @@ void adminAddDriver(TransportSystem& system) {
         std::getline(std::cin, lastName);
         std::cout << "Введите отчество водителя (если есть, иначе Enter): ";
         std::getline(std::cin, middleName);
+        std::cout << "Введите категорию водительских прав (D, T, DT, B, C и т.д.): ";
+        std::getline(std::cin, category);
 
-        auto driver = std::make_shared<Driver>(firstName, lastName, middleName);
+        auto driver = std::make_shared<Driver>(firstName, lastName, middleName, category);
         system.addDriver(driver);
         std::cout << "Водитель успешно добавлен!\n";
 
