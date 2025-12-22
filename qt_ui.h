@@ -202,7 +202,6 @@ private:
     TransportSystem* transportSystem;
     QComboBox* stopAComboBox;
     QComboBox* stopBComboBox;
-    QCheckBox* includeTransfersCheckBox;
     QTextEdit* resultsText;
     void populateStops();
 };

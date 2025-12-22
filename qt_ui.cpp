@@ -1267,9 +1267,6 @@ RouteSearchDialog::RouteSearchDialog(TransportSystem* system, QWidget *parent)
     QLabel* stopBLabel = new QLabel("Остановка B:", this);
     stopBComboBox = new QComboBox(this);
     
-    includeTransfersCheckBox = new QCheckBox("Искать маршруты с пересадками", this);
-    includeTransfersCheckBox->setChecked(false);
-    
     QPushButton* searchBtn = new QPushButton("Поиск", this);
     
     resultsText = new QTextEdit(this);
@@ -1281,7 +1278,6 @@ RouteSearchDialog::RouteSearchDialog(TransportSystem* system, QWidget *parent)
     layout->addWidget(stopAComboBox);
     layout->addWidget(stopBLabel);
     layout->addWidget(stopBComboBox);
-    layout->addWidget(includeTransfersCheckBox);
     layout->addWidget(searchBtn);
     layout->addWidget(resultsText);
     layout->addWidget(closeBtn);
@@ -1346,17 +1342,9 @@ void RouteSearchDialog::onSearchClicked() {
             resultsText->append("Прямых маршрутов не найдено.\n\n");
         }
         
-        // Ищем маршруты с пересадками, если пользователь выбрал эту опцию или если прямых маршрутов нет
-        bool shouldSearchTransfers = includeTransfersCheckBox->isChecked() || routes.empty();
-        
-        if (shouldSearchTransfers) {
-            if (routes.empty()) {
-                resultsText->append("\nПрямых маршрутов не найдено. Ищем маршруты с пересадками...\n\n");
-            } else {
-                resultsText->append("\n========================================\n");
-                resultsText->append("Маршруты с пересадками:\n");
-                resultsText->append("========================================\n\n");
-            }
+        // Ищем маршруты с пересадками, если прямых маршрутов нет
+        if (routes.empty()) {
+            resultsText->append("Ищем маршруты с пересадками...\n\n");
             
             try {
                 auto& planner = transportSystem->getJourneyPlanner();
@@ -1393,6 +1381,8 @@ void RouteSearchDialog::onSearchClicked() {
                     if (uniqueJourneys.empty()) {
                         resultsText->append("Маршрутов с пересадками не найдено.\n");
                     } else {
+                        resultsText->append("========================================\n");
+                        resultsText->append("Маршруты с пересадками:\n");
                         resultsText->append("========================================\n\n");
                         
                         // Показываем до 5 уникальных вариантов
