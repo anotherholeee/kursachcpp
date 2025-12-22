@@ -3,7 +3,7 @@
 
 #include <string>
 #include <memory>
-#include <vector>
+#include "list.h"
 #include "exceptions.h"
 
 class TransportSystem;
@@ -20,7 +20,7 @@ public:
 // Класс для управления историей команд
 class CommandHistory {
 private:
-    std::vector<std::unique_ptr<Command>> history;
+    List<std::unique_ptr<Command>> history;
     size_t currentIndex = 0;
     static const size_t MAX_HISTORY_SIZE = 100;
 
@@ -36,4 +36,3 @@ public:
 };
 
 #endif // COMMAND_H
-

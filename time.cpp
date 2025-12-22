@@ -94,4 +94,3 @@ std::string Time::serialize() const {
 Time Time::deserialize(const std::string& data) {
     return Time(data);
 }
-

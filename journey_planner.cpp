@@ -11,47 +11,47 @@ JourneyPlanner::JourneyPlanner(TransportSystem* sys)
       fastestAlgorithm(std::make_unique<FastestPathAlgorithm>(sys)),
       minimalTransfersAlgorithm(std::make_unique<MinimalTransfersAlgorithm>(sys)) {}
 
-std::vector<Journey> JourneyPlanner::findJourneysWithTransfers(
+List<Journey> JourneyPlanner::findJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,
     const Time& departureTime,
     int maxTransfers) const {
-    
+
     // Используем алгоритм BFS (создаем временный объект для const метода)
     BFSAlgorithm bfs(const_cast<TransportSystem*>(system), maxTransfers);
     return bfs.findPath(startStop, endStop, departureTime);
 }
 
-std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
+List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,
     int maxTransfers) const {
 
-    std::vector<Journey> journeys;
+    List<Journey> journeys;
 
     struct SearchNode {
         std::string currentStop;
         Time currentTime;
         Time startTime;
-        std::vector<std::shared_ptr<Trip>> pathTrips;
-        std::vector<std::string> transferPoints;
+        List<std::shared_ptr<Trip>> pathTrips;
+        List<std::string> transferPoints;
         int transfers;
     };
 
     auto initialTrips = system->getTripsThroughStop(startStop);
 
     // Фильтруем только рейсы с рассчитанным временем прибытия
-    std::vector<std::shared_ptr<Trip>> validInitialTrips;
+    List<std::shared_ptr<Trip>> validInitialTrips;
     for (const auto& trip : initialTrips) {
         if (trip->hasStop(startStop)) {
             validInitialTrips.push_back(trip);
         }
     }
 
-    std::sort(validInitialTrips.begin(), validInitialTrips.end(),
-              [&startStop](const auto& a, const auto& b) {
-                  return a->getArrivalTime(startStop) < b->getArrivalTime(startStop);
-              });
+    // Сортируем используя метод sort
+    validInitialTrips.sort([&startStop](const auto& a, const auto& b) {
+        return a->getArrivalTime(startStop) < b->getArrivalTime(startStop);
+    });
 
     std::queue<SearchNode> q;
     // Используем set для отслеживания уже посещенных комбинаций (остановка + количество пересадок)
@@ -72,8 +72,8 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
         q.pop();
 
         if (node.currentStop == endStop) {
-            journeys.emplace_back(node.pathTrips, node.transferPoints,
-                                 node.startTime, node.currentTime);
+            journeys.push_back(Journey(node.pathTrips, node.transferPoints,
+                                 node.startTime, node.currentTime));
             continue;
         }
 
@@ -114,12 +114,12 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
-                
+
                 // Проверяем, что время прибытия рассчитано для следующей остановки
                 if (!trip->hasStop(nextStop)) {
                     continue;
                 }
-                
+
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
                 SearchNode nextNode = node;
@@ -142,13 +142,13 @@ std::vector<Journey> JourneyPlanner::findAllJourneysWithTransfers(
         }
     }
 
-    std::sort(journeys.begin(), journeys.end(),
-              [](const Journey& a, const Journey& b) {
-                  if (a.getStartTime() != b.getStartTime()) {
-                      return a.getStartTime() < b.getStartTime();
-                  }
-                  return a.getTotalDuration() < b.getTotalDuration();
-              });
+    // Сортируем используя метод sort
+    journeys.sort([](const Journey& a, const Journey& b) {
+        if (a.getStartTime() != b.getStartTime()) {
+            return a.getStartTime() < b.getStartTime();
+        }
+        return a.getTotalDuration() < b.getTotalDuration();
+    });
 
     return journeys;
 }
@@ -180,4 +180,3 @@ Journey JourneyPlanner::findJourneyWithLeastTransfers(const std::string& startSt
 void JourneyPlanner::displayJourney(const Journey& journey) const {
     journey.display();
 }
-

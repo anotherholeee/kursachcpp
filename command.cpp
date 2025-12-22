@@ -1,7 +1,10 @@
 #include "command.h"
 
 void CommandHistory::executeCommand(std::unique_ptr<Command> cmd) {
-    history.erase(history.begin() + currentIndex, history.end());
+    // Удаляем элементы от currentIndex до конца
+    auto it = history.begin();
+    for (size_t i = 0; i < currentIndex && it != history.end(); ++i, ++it) {}
+    history.erase(it, history.end());
     cmd->execute();
     history.push_back(std::move(cmd));
     currentIndex = history.size();
@@ -54,4 +57,3 @@ std::string CommandHistory::getNextCommandDescription() const {
     }
     return "Нет действий для повтора";
 }
-

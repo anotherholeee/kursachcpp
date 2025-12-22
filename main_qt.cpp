@@ -43,12 +43,12 @@ void initializeTestData(TransportSystem& system) {
     auto bus4 = std::make_shared<Bus>("МАЗ-206", "АН 7777-7");
     auto bus5 = std::make_shared<Bus>("ПАЗ-4234", "ВС 8888-8");
     auto bus6 = std::make_shared<Bus>("ЛиАЗ-5256", "АВ 9999-9");
-    
+
     auto tram1 = std::make_shared<Tram>("71-931", "ТР 5678-9");
     auto tram2 = std::make_shared<Tram>("71-623", "ТР 3333-3");
     auto tram3 = std::make_shared<Tram>("71-407", "ТР 4444-4");
     auto tram4 = std::make_shared<Tram>("71-931М", "ТР 5555-5");
-    
+
     auto trolleybus1 = std::make_shared<Trolleybus>("ЗиУ-682", "ТБ 1111-1");
     auto trolleybus2 = std::make_shared<Trolleybus>("Тролза-5265", "ТБ 2222-2");
     auto trolleybus3 = std::make_shared<Trolleybus>("ЗиУ-683", "ТБ 3333-3");
@@ -106,49 +106,107 @@ void initializeTestData(TransportSystem& system) {
     system.addDriverDirect(driver15);
 
     // Маршруты (15 маршрутов)
-    std::vector<std::string> route1Stops = {"Центральный вокзал", "Площадь Ленина", "Улица Гагарина", "Стадион"};
+    List<std::string> route1Stops;
+    route1Stops.push_back("Центральный вокзал");
+    route1Stops.push_back("Площадь Ленина");
+    route1Stops.push_back("Улица Гагарина");
+    route1Stops.push_back("Стадион");
     auto route1 = std::make_shared<Route>(101, "Автобус", route1Stops);
 
-    std::vector<std::string> route2Stops = {"Центральный вокзал", "Площадь Ленина", "Больница", "Университет"};
+    List<std::string> route2Stops;
+    route2Stops.push_back("Центральный вокзал");
+    route2Stops.push_back("Площадь Ленина");
+    route2Stops.push_back("Больница");
+    route2Stops.push_back("Университет");
     auto route2 = std::make_shared<Route>(202, "Автобус", route2Stops);
 
-    std::vector<std::string> route3Stops = {"Парк Победы", "Улица Гагарина", "Больница", "Университет"};
+    List<std::string> route3Stops;
+    route3Stops.push_back("Парк Победы");
+    route3Stops.push_back("Улица Гагарина");
+    route3Stops.push_back("Больница");
+    route3Stops.push_back("Университет");
     auto route3 = std::make_shared<Route>(5, "Трамвай", route3Stops);
 
-    std::vector<std::string> route4Stops = {"Стадион", "Улица Гагарина", "Парк Победы"};
+    List<std::string> route4Stops;
+    route4Stops.push_back("Стадион");
+    route4Stops.push_back("Улица Гагарина");
+    route4Stops.push_back("Парк Победы");
     auto route4 = std::make_shared<Route>(303, "Троллейбус", route4Stops);
 
-    std::vector<std::string> route5Stops = {"Университет", "Больница", "Площадь Ленина", "Центральный вокзал"};
+    List<std::string> route5Stops;
+    route5Stops.push_back("Университет");
+    route5Stops.push_back("Больница");
+    route5Stops.push_back("Площадь Ленина");
+    route5Stops.push_back("Центральный вокзал");
     auto route5 = std::make_shared<Route>(404, "Автобус", route5Stops);
 
-    std::vector<std::string> route6Stops = {"Парк Победы", "Улица Гагарина", "Площадь Ленина"};
+    List<std::string> route6Stops;
+    route6Stops.push_back("Парк Победы");
+    route6Stops.push_back("Улица Гагарина");
+    route6Stops.push_back("Площадь Ленина");
     auto route6 = std::make_shared<Route>(7, "Трамвай", route6Stops);
 
-    std::vector<std::string> route7Stops = {"Железнодорожный вокзал", "Центральный вокзал", "Торговый центр", "Поликлиника"};
+    List<std::string> route7Stops;
+    route7Stops.push_back("Железнодорожный вокзал");
+    route7Stops.push_back("Центральный вокзал");
+    route7Stops.push_back("Торговый центр");
+    route7Stops.push_back("Поликлиника");
     auto route7 = std::make_shared<Route>(105, "Автобус", route7Stops);
 
-    std::vector<std::string> route8Stops = {"Аэропорт", "Железнодорожный вокзал", "Центральный вокзал", "Площадь Ленина"};
+    List<std::string> route8Stops;
+    route8Stops.push_back("Аэропорт");
+    route8Stops.push_back("Железнодорожный вокзал");
+    route8Stops.push_back("Центральный вокзал");
+    route8Stops.push_back("Площадь Ленина");
     auto route8 = std::make_shared<Route>(206, "Автобус", route8Stops);
 
-    std::vector<std::string> route9Stops = {"Университет", "Школа №1", "Поликлиника", "Больница"};
+    List<std::string> route9Stops;
+    route9Stops.push_back("Университет");
+    route9Stops.push_back("Школа №1");
+    route9Stops.push_back("Поликлиника");
+    route9Stops.push_back("Больница");
     auto route9 = std::make_shared<Route>(8, "Трамвай", route9Stops);
 
-    std::vector<std::string> route10Stops = {"Центральный рынок", "Площадь Ленина", "Театр", "Библиотека"};
+    List<std::string> route10Stops;
+    route10Stops.push_back("Центральный рынок");
+    route10Stops.push_back("Площадь Ленина");
+    route10Stops.push_back("Театр");
+    route10Stops.push_back("Библиотека");
     auto route10 = std::make_shared<Route>(304, "Троллейбус", route10Stops);
 
-    std::vector<std::string> route11Stops = {"Спортивный комплекс", "Стадион", "Парк культуры", "Парк Победы"};
+    List<std::string> route11Stops;
+    route11Stops.push_back("Спортивный комплекс");
+    route11Stops.push_back("Стадион");
+    route11Stops.push_back("Парк культуры");
+    route11Stops.push_back("Парк Победы");
     auto route11 = std::make_shared<Route>(9, "Трамвай", route11Stops);
 
-    std::vector<std::string> route12Stops = {"Автовокзал", "Центральный вокзал", "Площадь Ленина", "Торговый центр"};
+    List<std::string> route12Stops;
+    route12Stops.push_back("Автовокзал");
+    route12Stops.push_back("Центральный вокзал");
+    route12Stops.push_back("Площадь Ленина");
+    route12Stops.push_back("Торговый центр");
     auto route12 = std::make_shared<Route>(107, "Автобус", route12Stops);
 
-    std::vector<std::string> route13Stops = {"Завод", "Микрорайон Северный", "Университет", "Больница"};
+    List<std::string> route13Stops;
+    route13Stops.push_back("Завод");
+    route13Stops.push_back("Микрорайон Северный");
+    route13Stops.push_back("Университет");
+    route13Stops.push_back("Больница");
     auto route13 = std::make_shared<Route>(305, "Троллейбус", route13Stops);
 
-    std::vector<std::string> route14Stops = {"Парк культуры", "Библиотека", "Театр", "Центральный рынок"};
+    List<std::string> route14Stops;
+    route14Stops.push_back("Парк культуры");
+    route14Stops.push_back("Библиотека");
+    route14Stops.push_back("Театр");
+    route14Stops.push_back("Центральный рынок");
     auto route14 = std::make_shared<Route>(306, "Троллейбус", route14Stops);
 
-    std::vector<std::string> route15Stops = {"Аэропорт", "Железнодорожный вокзал", "Автовокзал", "Центральный вокзал"};
+    List<std::string> route15Stops;
+    route15Stops.push_back("Аэропорт");
+    route15Stops.push_back("Железнодорожный вокзал");
+    route15Stops.push_back("Автовокзал");
+    route15Stops.push_back("Центральный вокзал");
     auto route15 = std::make_shared<Route>(108, "Автобус", route15Stops);
 
     system.addRouteDirect(route1);
@@ -178,7 +236,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip6 = std::make_shared<Trip>(6, route1, bus2, driver2, Time("15:00"), 1);
         auto trip7 = std::make_shared<Trip>(7, route1, bus1, driver1, Time("17:00"), 1);
         auto trip8 = std::make_shared<Trip>(8, route1, bus3, driver3, Time("19:00"), 1);
-        
+
         // Маршрут 202
         auto trip9 = std::make_shared<Trip>(9, route2, bus2, driver2, Time("07:00"), 1);
         auto trip10 = std::make_shared<Trip>(10, route2, bus4, driver4, Time("08:30"), 1);
@@ -187,7 +245,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip13 = std::make_shared<Trip>(13, route2, bus4, driver4, Time("14:00"), 1);
         auto trip14 = std::make_shared<Trip>(14, route2, bus2, driver2, Time("16:00"), 1);
         auto trip15 = std::make_shared<Trip>(15, route2, bus5, driver5, Time("18:00"), 1);
-        
+
         // Маршрут 5 (Трамвай)
         auto trip16 = std::make_shared<Trip>(16, route3, tram1, driver6, Time("06:00"), 1);
         auto trip17 = std::make_shared<Trip>(17, route3, tram2, driver7, Time("07:30"), 1);
@@ -197,7 +255,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip21 = std::make_shared<Trip>(21, route3, tram1, driver6, Time("15:30"), 1);
         auto trip22 = std::make_shared<Trip>(22, route3, tram3, driver8, Time("17:30"), 1);
         auto trip23 = std::make_shared<Trip>(23, route3, tram4, driver9, Time("19:30"), 1);
-        
+
         // Маршрут 303 (Троллейбус)
         auto trip24 = std::make_shared<Trip>(24, route4, trolleybus1, driver10, Time("07:15"), 1);
         auto trip25 = std::make_shared<Trip>(25, route4, trolleybus2, driver11, Time("09:15"), 1);
@@ -205,7 +263,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip27 = std::make_shared<Trip>(27, route4, trolleybus3, driver12, Time("13:15"), 1);
         auto trip28 = std::make_shared<Trip>(28, route4, trolleybus2, driver11, Time("15:15"), 1);
         auto trip29 = std::make_shared<Trip>(29, route4, trolleybus1, driver10, Time("17:15"), 1);
-        
+
         // Маршрут 404
         auto trip30 = std::make_shared<Trip>(30, route5, bus3, driver13, Time("08:15"), 1);
         auto trip31 = std::make_shared<Trip>(31, route5, bus6, driver14, Time("10:15"), 1);
@@ -213,66 +271,66 @@ void initializeTestData(TransportSystem& system) {
         auto trip33 = std::make_shared<Trip>(33, route5, bus6, driver14, Time("14:15"), 1);
         auto trip34 = std::make_shared<Trip>(34, route5, bus3, driver13, Time("16:15"), 1);
         auto trip35 = std::make_shared<Trip>(35, route5, bus6, driver14, Time("18:15"), 1);
-        
+
         // Маршрут 7 (Трамвай)
         auto trip36 = std::make_shared<Trip>(36, route6, tram2, driver15, Time("08:45"), 1);
         auto trip37 = std::make_shared<Trip>(37, route6, tram4, driver7, Time("10:45"), 1);
         auto trip38 = std::make_shared<Trip>(38, route6, tram2, driver15, Time("12:45"), 1);
         auto trip39 = std::make_shared<Trip>(39, route6, tram4, driver7, Time("14:45"), 1);
         auto trip40 = std::make_shared<Trip>(40, route6, tram2, driver15, Time("16:45"), 1);
-        
+
         // Дополнительные маршруты
         auto trip41 = std::make_shared<Trip>(41, route7, bus4, driver1, Time("07:20"), 1);
         auto trip42 = std::make_shared<Trip>(42, route7, bus5, driver2, Time("09:20"), 1);
         auto trip43 = std::make_shared<Trip>(43, route7, bus4, driver1, Time("11:20"), 1);
         auto trip44 = std::make_shared<Trip>(44, route7, bus5, driver2, Time("13:20"), 1);
         auto trip45 = std::make_shared<Trip>(45, route7, bus4, driver1, Time("15:20"), 1);
-        
+
         auto trip46 = std::make_shared<Trip>(46, route8, bus6, driver3, Time("06:45"), 1);
         auto trip47 = std::make_shared<Trip>(47, route8, bus1, driver4, Time("08:45"), 1);
         auto trip48 = std::make_shared<Trip>(48, route8, bus6, driver3, Time("10:45"), 1);
         auto trip49 = std::make_shared<Trip>(49, route8, bus1, driver4, Time("12:45"), 1);
         auto trip50 = std::make_shared<Trip>(50, route8, bus6, driver3, Time("14:45"), 1);
-        
+
         auto trip51 = std::make_shared<Trip>(51, route9, tram1, driver5, Time("07:10"), 1);
         auto trip52 = std::make_shared<Trip>(52, route9, tram3, driver6, Time("09:10"), 1);
         auto trip53 = std::make_shared<Trip>(53, route9, tram1, driver5, Time("11:10"), 1);
         auto trip54 = std::make_shared<Trip>(54, route9, tram3, driver6, Time("13:10"), 1);
         auto trip55 = std::make_shared<Trip>(55, route9, tram1, driver5, Time("15:10"), 1);
-        
+
         auto trip56 = std::make_shared<Trip>(56, route10, trolleybus2, driver7, Time("08:00"), 1);
         auto trip57 = std::make_shared<Trip>(57, route10, trolleybus4, driver8, Time("10:00"), 1);
         auto trip58 = std::make_shared<Trip>(58, route10, trolleybus2, driver7, Time("12:00"), 1);
         auto trip59 = std::make_shared<Trip>(59, route10, trolleybus4, driver8, Time("14:00"), 1);
         auto trip60 = std::make_shared<Trip>(60, route10, trolleybus2, driver7, Time("16:00"), 1);
-        
+
         auto trip61 = std::make_shared<Trip>(61, route11, tram2, driver9, Time("08:30"), 1);
         auto trip62 = std::make_shared<Trip>(62, route11, tram4, driver10, Time("10:30"), 1);
         auto trip63 = std::make_shared<Trip>(63, route11, tram2, driver9, Time("12:30"), 1);
         auto trip64 = std::make_shared<Trip>(64, route11, tram4, driver10, Time("14:30"), 1);
-        
+
         auto trip65 = std::make_shared<Trip>(65, route12, bus2, driver11, Time("07:40"), 1);
         auto trip66 = std::make_shared<Trip>(66, route12, bus3, driver12, Time("09:40"), 1);
         auto trip67 = std::make_shared<Trip>(67, route12, bus2, driver11, Time("11:40"), 1);
         auto trip68 = std::make_shared<Trip>(68, route12, bus3, driver12, Time("13:40"), 1);
         auto trip69 = std::make_shared<Trip>(69, route12, bus2, driver11, Time("15:40"), 1);
-        
+
         auto trip70 = std::make_shared<Trip>(70, route13, trolleybus3, driver13, Time("08:20"), 1);
         auto trip71 = std::make_shared<Trip>(71, route13, trolleybus5, driver14, Time("10:20"), 1);
         auto trip72 = std::make_shared<Trip>(72, route13, trolleybus3, driver13, Time("12:20"), 1);
         auto trip73 = std::make_shared<Trip>(73, route13, trolleybus5, driver14, Time("14:20"), 1);
-        
+
         auto trip74 = std::make_shared<Trip>(74, route14, trolleybus1, driver15, Time("09:00"), 1);
         auto trip75 = std::make_shared<Trip>(75, route14, trolleybus4, driver1, Time("11:00"), 1);
         auto trip76 = std::make_shared<Trip>(76, route14, trolleybus1, driver15, Time("13:00"), 1);
         auto trip77 = std::make_shared<Trip>(77, route14, trolleybus4, driver1, Time("15:00"), 1);
-        
+
         auto trip78 = std::make_shared<Trip>(78, route15, bus5, driver2, Time("07:50"), 1);
         auto trip79 = std::make_shared<Trip>(79, route15, bus6, driver3, Time("09:50"), 1);
         auto trip80 = std::make_shared<Trip>(80, route15, bus5, driver2, Time("11:50"), 1);
         auto trip81 = std::make_shared<Trip>(81, route15, bus6, driver3, Time("13:50"), 1);
         auto trip82 = std::make_shared<Trip>(82, route15, bus5, driver2, Time("15:50"), 1);
-        
+
         // Рейсы для вторника (день 2)
         auto trip83 = std::make_shared<Trip>(83, route1, bus1, driver1, Time("06:30"), 2);
         auto trip84 = std::make_shared<Trip>(84, route1, bus2, driver2, Time("08:00"), 2);
@@ -282,7 +340,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip88 = std::make_shared<Trip>(88, route1, bus3, driver3, Time("15:00"), 2);
         auto trip89 = std::make_shared<Trip>(89, route1, bus1, driver1, Time("17:00"), 2);
         auto trip90 = std::make_shared<Trip>(90, route1, bus2, driver2, Time("19:00"), 2);
-        
+
         auto trip91 = std::make_shared<Trip>(91, route2, bus2, driver2, Time("07:00"), 2);
         auto trip92 = std::make_shared<Trip>(92, route2, bus4, driver4, Time("08:30"), 2);
         auto trip93 = std::make_shared<Trip>(93, route2, bus5, driver5, Time("10:00"), 2);
@@ -290,7 +348,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip95 = std::make_shared<Trip>(95, route2, bus4, driver4, Time("14:00"), 2);
         auto trip96 = std::make_shared<Trip>(96, route2, bus5, driver5, Time("16:00"), 2);
         auto trip97 = std::make_shared<Trip>(97, route2, bus2, driver2, Time("18:00"), 2);
-        
+
         auto trip98 = std::make_shared<Trip>(98, route3, tram1, driver6, Time("06:00"), 2);
         auto trip99 = std::make_shared<Trip>(99, route3, tram2, driver7, Time("07:30"), 2);
         auto trip100 = std::make_shared<Trip>(100, route3, tram3, driver8, Time("09:00"), 2);
@@ -299,27 +357,27 @@ void initializeTestData(TransportSystem& system) {
         auto trip103 = std::make_shared<Trip>(103, route3, tram3, driver8, Time("15:30"), 2);
         auto trip104 = std::make_shared<Trip>(104, route3, tram1, driver6, Time("17:30"), 2);
         auto trip105 = std::make_shared<Trip>(105, route3, tram4, driver9, Time("19:30"), 2);
-        
+
         auto trip106 = std::make_shared<Trip>(106, route4, trolleybus1, driver10, Time("07:15"), 2);
         auto trip107 = std::make_shared<Trip>(107, route4, trolleybus2, driver11, Time("09:15"), 2);
         auto trip108 = std::make_shared<Trip>(108, route4, trolleybus3, driver12, Time("11:15"), 2);
         auto trip109 = std::make_shared<Trip>(109, route4, trolleybus1, driver10, Time("13:15"), 2);
         auto trip110 = std::make_shared<Trip>(110, route4, trolleybus2, driver11, Time("15:15"), 2);
         auto trip111 = std::make_shared<Trip>(111, route4, trolleybus3, driver12, Time("17:15"), 2);
-        
+
         auto trip112 = std::make_shared<Trip>(112, route5, bus3, driver13, Time("08:15"), 2);
         auto trip113 = std::make_shared<Trip>(113, route5, bus6, driver14, Time("10:15"), 2);
         auto trip114 = std::make_shared<Trip>(114, route5, bus3, driver13, Time("12:15"), 2);
         auto trip115 = std::make_shared<Trip>(115, route5, bus6, driver14, Time("14:15"), 2);
         auto trip116 = std::make_shared<Trip>(116, route5, bus3, driver13, Time("16:15"), 2);
         auto trip117 = std::make_shared<Trip>(117, route5, bus6, driver14, Time("18:15"), 2);
-        
+
         auto trip118 = std::make_shared<Trip>(118, route6, tram2, driver15, Time("08:45"), 2);
         auto trip119 = std::make_shared<Trip>(119, route6, tram4, driver7, Time("10:45"), 2);
         auto trip120 = std::make_shared<Trip>(120, route6, tram2, driver15, Time("12:45"), 2);
         auto trip121 = std::make_shared<Trip>(121, route6, tram4, driver7, Time("14:45"), 2);
         auto trip122 = std::make_shared<Trip>(122, route6, tram2, driver15, Time("16:45"), 2);
-        
+
         // Рейсы для среды (день 3)
         auto trip123 = std::make_shared<Trip>(123, route1, bus1, driver1, Time("06:30"), 3);
         auto trip124 = std::make_shared<Trip>(124, route1, bus2, driver2, Time("08:00"), 3);
@@ -329,7 +387,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip128 = std::make_shared<Trip>(128, route1, bus3, driver3, Time("15:00"), 3);
         auto trip129 = std::make_shared<Trip>(129, route1, bus1, driver1, Time("17:00"), 3);
         auto trip130 = std::make_shared<Trip>(130, route1, bus2, driver2, Time("19:00"), 3);
-        
+
         auto trip131 = std::make_shared<Trip>(131, route2, bus2, driver2, Time("07:00"), 3);
         auto trip132 = std::make_shared<Trip>(132, route2, bus4, driver4, Time("08:30"), 3);
         auto trip133 = std::make_shared<Trip>(133, route2, bus5, driver5, Time("10:00"), 3);
@@ -337,7 +395,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip135 = std::make_shared<Trip>(135, route2, bus4, driver4, Time("14:00"), 3);
         auto trip136 = std::make_shared<Trip>(136, route2, bus5, driver5, Time("16:00"), 3);
         auto trip137 = std::make_shared<Trip>(137, route2, bus2, driver2, Time("18:00"), 3);
-        
+
         auto trip138 = std::make_shared<Trip>(138, route3, tram1, driver6, Time("06:00"), 3);
         auto trip139 = std::make_shared<Trip>(139, route3, tram2, driver7, Time("07:30"), 3);
         auto trip140 = std::make_shared<Trip>(140, route3, tram3, driver8, Time("09:00"), 3);
@@ -346,27 +404,27 @@ void initializeTestData(TransportSystem& system) {
         auto trip143 = std::make_shared<Trip>(143, route3, tram3, driver8, Time("15:30"), 3);
         auto trip144 = std::make_shared<Trip>(144, route3, tram1, driver6, Time("17:30"), 3);
         auto trip145 = std::make_shared<Trip>(145, route3, tram4, driver9, Time("19:30"), 3);
-        
+
         auto trip146 = std::make_shared<Trip>(146, route4, trolleybus1, driver10, Time("07:15"), 3);
         auto trip147 = std::make_shared<Trip>(147, route4, trolleybus2, driver11, Time("09:15"), 3);
         auto trip148 = std::make_shared<Trip>(148, route4, trolleybus3, driver12, Time("11:15"), 3);
         auto trip149 = std::make_shared<Trip>(149, route4, trolleybus1, driver10, Time("13:15"), 3);
         auto trip150 = std::make_shared<Trip>(150, route4, trolleybus2, driver11, Time("15:15"), 3);
         auto trip151 = std::make_shared<Trip>(151, route4, trolleybus3, driver12, Time("17:15"), 3);
-        
+
         auto trip152 = std::make_shared<Trip>(152, route5, bus3, driver13, Time("08:15"), 3);
         auto trip153 = std::make_shared<Trip>(153, route5, bus6, driver14, Time("10:15"), 3);
         auto trip154 = std::make_shared<Trip>(154, route5, bus3, driver13, Time("12:15"), 3);
         auto trip155 = std::make_shared<Trip>(155, route5, bus6, driver14, Time("14:15"), 3);
         auto trip156 = std::make_shared<Trip>(156, route5, bus3, driver13, Time("16:15"), 3);
         auto trip157 = std::make_shared<Trip>(157, route5, bus6, driver14, Time("18:15"), 3);
-        
+
         auto trip158 = std::make_shared<Trip>(158, route6, tram2, driver15, Time("08:45"), 3);
         auto trip159 = std::make_shared<Trip>(159, route6, tram4, driver7, Time("10:45"), 3);
         auto trip160 = std::make_shared<Trip>(160, route6, tram2, driver15, Time("12:45"), 3);
         auto trip161 = std::make_shared<Trip>(161, route6, tram4, driver7, Time("14:45"), 3);
         auto trip162 = std::make_shared<Trip>(162, route6, tram2, driver15, Time("16:45"), 3);
-        
+
         // Рейсы для четверга (день 4)
         auto trip163 = std::make_shared<Trip>(163, route1, bus1, driver1, Time("06:30"), 4);
         auto trip164 = std::make_shared<Trip>(164, route1, bus2, driver2, Time("08:00"), 4);
@@ -376,7 +434,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip168 = std::make_shared<Trip>(168, route1, bus3, driver3, Time("15:00"), 4);
         auto trip169 = std::make_shared<Trip>(169, route1, bus1, driver1, Time("17:00"), 4);
         auto trip170 = std::make_shared<Trip>(170, route1, bus2, driver2, Time("19:00"), 4);
-        
+
         auto trip171 = std::make_shared<Trip>(171, route2, bus2, driver2, Time("07:00"), 4);
         auto trip172 = std::make_shared<Trip>(172, route2, bus4, driver4, Time("08:30"), 4);
         auto trip173 = std::make_shared<Trip>(173, route2, bus5, driver5, Time("10:00"), 4);
@@ -384,7 +442,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip175 = std::make_shared<Trip>(175, route2, bus4, driver4, Time("14:00"), 4);
         auto trip176 = std::make_shared<Trip>(176, route2, bus5, driver5, Time("16:00"), 4);
         auto trip177 = std::make_shared<Trip>(177, route2, bus2, driver2, Time("18:00"), 4);
-        
+
         auto trip178 = std::make_shared<Trip>(178, route3, tram1, driver6, Time("06:00"), 4);
         auto trip179 = std::make_shared<Trip>(179, route3, tram2, driver7, Time("07:30"), 4);
         auto trip180 = std::make_shared<Trip>(180, route3, tram3, driver8, Time("09:00"), 4);
@@ -393,27 +451,27 @@ void initializeTestData(TransportSystem& system) {
         auto trip183 = std::make_shared<Trip>(183, route3, tram3, driver8, Time("15:30"), 4);
         auto trip184 = std::make_shared<Trip>(184, route3, tram1, driver6, Time("17:30"), 4);
         auto trip185 = std::make_shared<Trip>(185, route3, tram4, driver9, Time("19:30"), 4);
-        
+
         auto trip186 = std::make_shared<Trip>(186, route4, trolleybus1, driver10, Time("07:15"), 4);
         auto trip187 = std::make_shared<Trip>(187, route4, trolleybus2, driver11, Time("09:15"), 4);
         auto trip188 = std::make_shared<Trip>(188, route4, trolleybus3, driver12, Time("11:15"), 4);
         auto trip189 = std::make_shared<Trip>(189, route4, trolleybus1, driver10, Time("13:15"), 4);
         auto trip190 = std::make_shared<Trip>(190, route4, trolleybus2, driver11, Time("15:15"), 4);
         auto trip191 = std::make_shared<Trip>(191, route4, trolleybus3, driver12, Time("17:15"), 4);
-        
+
         auto trip192 = std::make_shared<Trip>(192, route5, bus3, driver13, Time("08:15"), 4);
         auto trip193 = std::make_shared<Trip>(193, route5, bus6, driver14, Time("10:15"), 4);
         auto trip194 = std::make_shared<Trip>(194, route5, bus3, driver13, Time("12:15"), 4);
         auto trip195 = std::make_shared<Trip>(195, route5, bus6, driver14, Time("14:15"), 4);
         auto trip196 = std::make_shared<Trip>(196, route5, bus3, driver13, Time("16:15"), 4);
         auto trip197 = std::make_shared<Trip>(197, route5, bus6, driver14, Time("18:15"), 4);
-        
+
         auto trip198 = std::make_shared<Trip>(198, route6, tram2, driver15, Time("08:45"), 4);
         auto trip199 = std::make_shared<Trip>(199, route6, tram4, driver7, Time("10:45"), 4);
         auto trip200 = std::make_shared<Trip>(200, route6, tram2, driver15, Time("12:45"), 4);
         auto trip201 = std::make_shared<Trip>(201, route6, tram4, driver7, Time("14:45"), 4);
         auto trip202 = std::make_shared<Trip>(202, route6, tram2, driver15, Time("16:45"), 4);
-        
+
         // Рейсы для пятницы (день 5)
         auto trip203 = std::make_shared<Trip>(203, route1, bus1, driver1, Time("06:30"), 5);
         auto trip204 = std::make_shared<Trip>(204, route1, bus2, driver2, Time("08:00"), 5);
@@ -423,7 +481,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip208 = std::make_shared<Trip>(208, route1, bus3, driver3, Time("15:00"), 5);
         auto trip209 = std::make_shared<Trip>(209, route1, bus1, driver1, Time("17:00"), 5);
         auto trip210 = std::make_shared<Trip>(210, route1, bus2, driver2, Time("19:00"), 5);
-        
+
         auto trip211 = std::make_shared<Trip>(211, route2, bus2, driver2, Time("07:00"), 5);
         auto trip212 = std::make_shared<Trip>(212, route2, bus4, driver4, Time("08:30"), 5);
         auto trip213 = std::make_shared<Trip>(213, route2, bus5, driver5, Time("10:00"), 5);
@@ -431,7 +489,7 @@ void initializeTestData(TransportSystem& system) {
         auto trip215 = std::make_shared<Trip>(215, route2, bus4, driver4, Time("14:00"), 5);
         auto trip216 = std::make_shared<Trip>(216, route2, bus5, driver5, Time("16:00"), 5);
         auto trip217 = std::make_shared<Trip>(217, route2, bus2, driver2, Time("18:00"), 5);
-        
+
         auto trip218 = std::make_shared<Trip>(218, route3, tram1, driver6, Time("06:00"), 5);
         auto trip219 = std::make_shared<Trip>(219, route3, tram2, driver7, Time("07:30"), 5);
         auto trip220 = std::make_shared<Trip>(220, route3, tram3, driver8, Time("09:00"), 5);
@@ -440,63 +498,63 @@ void initializeTestData(TransportSystem& system) {
         auto trip223 = std::make_shared<Trip>(223, route3, tram3, driver8, Time("15:30"), 5);
         auto trip224 = std::make_shared<Trip>(224, route3, tram1, driver6, Time("17:30"), 5);
         auto trip225 = std::make_shared<Trip>(225, route3, tram4, driver9, Time("19:30"), 5);
-        
+
         auto trip226 = std::make_shared<Trip>(226, route4, trolleybus1, driver10, Time("07:15"), 5);
         auto trip227 = std::make_shared<Trip>(227, route4, trolleybus2, driver11, Time("09:15"), 5);
         auto trip228 = std::make_shared<Trip>(228, route4, trolleybus3, driver12, Time("11:15"), 5);
         auto trip229 = std::make_shared<Trip>(229, route4, trolleybus1, driver10, Time("13:15"), 5);
         auto trip230 = std::make_shared<Trip>(230, route4, trolleybus2, driver11, Time("15:15"), 5);
         auto trip231 = std::make_shared<Trip>(231, route4, trolleybus3, driver12, Time("17:15"), 5);
-        
+
         auto trip232 = std::make_shared<Trip>(232, route5, bus3, driver13, Time("08:15"), 5);
         auto trip233 = std::make_shared<Trip>(233, route5, bus6, driver14, Time("10:15"), 5);
         auto trip234 = std::make_shared<Trip>(234, route5, bus3, driver13, Time("12:15"), 5);
         auto trip235 = std::make_shared<Trip>(235, route5, bus6, driver14, Time("14:15"), 5);
         auto trip236 = std::make_shared<Trip>(236, route5, bus3, driver13, Time("16:15"), 5);
         auto trip237 = std::make_shared<Trip>(237, route5, bus6, driver14, Time("18:15"), 5);
-        
+
         auto trip238 = std::make_shared<Trip>(238, route6, tram2, driver15, Time("08:45"), 5);
         auto trip239 = std::make_shared<Trip>(239, route6, tram4, driver7, Time("10:45"), 5);
         auto trip240 = std::make_shared<Trip>(240, route6, tram2, driver15, Time("12:45"), 5);
         auto trip241 = std::make_shared<Trip>(241, route6, tram4, driver7, Time("14:45"), 5);
         auto trip242 = std::make_shared<Trip>(242, route6, tram2, driver15, Time("16:45"), 5);
-        
+
         // Рейсы для субботы (день 6)
         auto trip243 = std::make_shared<Trip>(243, route1, bus1, driver1, Time("08:00"), 6);
         auto trip244 = std::make_shared<Trip>(244, route1, bus2, driver2, Time("10:00"), 6);
         auto trip245 = std::make_shared<Trip>(245, route1, bus3, driver3, Time("12:00"), 6);
         auto trip246 = std::make_shared<Trip>(246, route1, bus1, driver1, Time("14:00"), 6);
         auto trip247 = std::make_shared<Trip>(247, route1, bus2, driver2, Time("16:00"), 6);
-        
+
         auto trip248 = std::make_shared<Trip>(248, route2, bus2, driver2, Time("09:00"), 6);
         auto trip249 = std::make_shared<Trip>(249, route2, bus4, driver4, Time("11:00"), 6);
         auto trip250 = std::make_shared<Trip>(250, route2, bus5, driver5, Time("13:00"), 6);
         auto trip251 = std::make_shared<Trip>(251, route2, bus2, driver2, Time("15:00"), 6);
-        
+
         auto trip252 = std::make_shared<Trip>(252, route3, tram1, driver6, Time("08:30"), 6);
         auto trip253 = std::make_shared<Trip>(253, route3, tram2, driver7, Time("10:30"), 6);
         auto trip254 = std::make_shared<Trip>(254, route3, tram3, driver8, Time("12:30"), 6);
         auto trip255 = std::make_shared<Trip>(255, route3, tram1, driver6, Time("14:30"), 6);
-        
+
         auto trip256 = std::make_shared<Trip>(256, route4, trolleybus1, driver10, Time("09:15"), 6);
         auto trip257 = std::make_shared<Trip>(257, route4, trolleybus2, driver11, Time("11:15"), 6);
         auto trip258 = std::make_shared<Trip>(258, route4, trolleybus3, driver12, Time("13:15"), 6);
         auto trip259 = std::make_shared<Trip>(259, route4, trolleybus1, driver10, Time("15:15"), 6);
-        
+
         // Рейсы для воскресенья (день 7)
         auto trip260 = std::make_shared<Trip>(260, route1, bus1, driver1, Time("09:00"), 7);
         auto trip261 = std::make_shared<Trip>(261, route1, bus2, driver2, Time("11:00"), 7);
         auto trip262 = std::make_shared<Trip>(262, route1, bus3, driver3, Time("13:00"), 7);
         auto trip263 = std::make_shared<Trip>(263, route1, bus1, driver1, Time("15:00"), 7);
-        
+
         auto trip264 = std::make_shared<Trip>(264, route2, bus2, driver2, Time("10:00"), 7);
         auto trip265 = std::make_shared<Trip>(265, route2, bus4, driver4, Time("12:00"), 7);
         auto trip266 = std::make_shared<Trip>(266, route2, bus5, driver5, Time("14:00"), 7);
-        
+
         auto trip267 = std::make_shared<Trip>(267, route3, tram1, driver6, Time("09:30"), 7);
         auto trip268 = std::make_shared<Trip>(268, route3, tram2, driver7, Time("11:30"), 7);
         auto trip269 = std::make_shared<Trip>(269, route3, tram3, driver8, Time("13:30"), 7);
-        
+
         auto trip270 = std::make_shared<Trip>(270, route4, trolleybus1, driver10, Time("10:15"), 7);
         auto trip271 = std::make_shared<Trip>(271, route4, trolleybus2, driver11, Time("12:15"), 7);
         auto trip272 = std::make_shared<Trip>(272, route4, trolleybus3, driver12, Time("14:15"), 7);
@@ -798,19 +856,19 @@ int main(int argc, char *argv[]) {
 
     try {
         TransportSystem system;
-        
+
         // Загружаем данные из файлов
         std::cout << "[INFO] Загрузка данных из файлов..." << std::endl;
         system.loadData();
-        
+
         // Проверяем, есть ли данные вообще (только если ВСЕ категории пустые)
         // Это означает, что файлы не существуют или пустые
-        bool needsInit = system.getStops().empty() && 
-                        system.getRoutes().empty() && 
-                        system.getVehicles().empty() && 
+        bool needsInit = system.getStops().empty() &&
+                        system.getRoutes().empty() &&
+                        system.getVehicles().empty() &&
                         system.getDrivers().empty() &&
                         system.getTrips().empty();
-        
+
         // Если нет данных вообще, инициализируем тестовые данные
         if (needsInit) {
             std::cout << "[INFO] Файлы данных пусты или не существуют. Инициализация тестовых данных..." << std::endl;
@@ -820,7 +878,7 @@ int main(int argc, char *argv[]) {
             std::cout << "[INFO] Тестовые данные инициализированы и сохранены в файлы." << std::endl;
         } else {
             std::cout << "[INFO] Данные успешно загружены из файлов." << std::endl;
-            std::cout << "[INFO] Статистика: " 
+            std::cout << "[INFO] Статистика: "
                       << system.getStops().size() << " остановок, "
                       << system.getRoutes().size() << " маршрутов, "
                       << system.getTrips().size() << " рейсов, "
@@ -854,4 +912,3 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 }
-

@@ -157,9 +157,9 @@ class Route {
     - vehicleType : string
     - startStop : string
     - endStop : string
-    - allStops : vector<string>
+    - allStops : Deque<string>
     - weekDays : set<int>
-    + Route(num : int, vType : string, stops : vector<string>, days : set<int>)
+    + Route(num : int, vType : string, stops : Deque<string>, days : set<int>)
     + ~Route()
     + containsStop(stop : string) : bool
     + getStopPosition(stop : string) : int
@@ -168,7 +168,7 @@ class Route {
     + getVehicleType() : string
     + getStartStop() : string
     + getEndStop() : string
-    + getAllStops() : const vector<string>&
+    + getAllStops() : const Deque<string>&
     + getWeekDays() : const set<int>&
     + operatesOnDay(day : int) : bool
     + serialize() : string
@@ -201,78 +201,20 @@ class Trip {
 }
 
 class Journey {
-    - trips : vector<shared_ptr<Trip>>
-    - transferPoints : vector<string>
+    - trips : Deque<shared_ptr<Trip>>
+    - transferPoints : Deque<string>
     - startTime : Time
     - endTime : Time
     - transferCount : int
-    + Journey(tripList : vector<shared_ptr<Trip>>, transfers : vector<string>, start : Time, end : Time)
+    + Journey(tripList : Deque<shared_ptr<Trip>>, transfers : Deque<string>, start : Time, end : Time)
     + ~Journey()
     + getTotalDuration() : int
     + getTransferCount() : int
     + getStartTime() : Time
     + getEndTime() : Time
-    + getTrips() : const vector<shared_ptr<Trip>>&
-    + getTransferPoints() : const vector<string>&
+    + getTrips() : const Deque<shared_ptr<Trip>>&
+    + getTransferPoints() : const Deque<string>&
     + display() : void
-}
-
-' Шаблонный класс
-class DynamicArray<T> {
-    - data : T*
-    - capacity : size_t
-    - size_ : size_t
-    + DynamicArray()
-    + DynamicArray(initialSize : size_t)
-    + DynamicArray(other : const DynamicArray&)
-    + operator=(other : const DynamicArray&) : DynamicArray&
-    + ~DynamicArray()
-    + push_back(value : const T&) : void
-    + push_back(value : T&&) : void
-    + erase(it : Iterator) : void
-    + erase(first : Iterator, last : Iterator) : void
-    + operator[](index : size_t) : T&
-    + operator[](index : size_t) : const T&
-    + front() : T&
-    + front() : const T&
-    + back() : T&
-    + back() : const T&
-    + size() : size_t
-    + empty() : bool
-    + clear() : void
-    + begin() : Iterator
-    + end() : Iterator
-    + begin() : const Iterator
-    + end() : const Iterator
-}
-
-' Итератор для DynamicArray
-class "DynamicArray<T>::Iterator" as DynamicArrayIterator {
-    - ptr : T*
-    + Iterator(p : T*)
-    + ~Iterator()
-    + operator*() : T&
-    + operator*() : const T&
-    + operator->() : T*
-    + operator->() : const T*
-    + operator++() : Iterator&
-    + operator++(int) : Iterator
-    + operator--() : Iterator&
-    + operator--(int) : Iterator
-    + operator==(other : Iterator) : bool
-    + operator!=(other : Iterator) : bool
-    + operator+(n : int) : Iterator
-    + operator-(n : int) : Iterator
-    + {friend} operator+(n : int, it : Iterator) : Iterator
-    + {friend} operator-(a : Iterator, b : Iterator) : int
-    + operator<(other : Iterator) : bool
-    + operator>(other : Iterator) : bool
-    + operator<=(other : Iterator) : bool
-    + operator>=(other : Iterator) : bool
-    + operator+=(n : int) : Iterator&
-    + operator-=(n : int) : Iterator&
-    + operator[](n : int) : T&
-    + operator[](n : int) : const T&
 }
 
 ' Паттерн Command
@@ -284,7 +226,7 @@ abstract class Command {
 }
 
 class CommandHistory {
-    - history : vector<unique_ptr<Command>>
+    - history : Deque<unique_ptr<Command>>
     - currentIndex : size_t
     - MAX_HISTORY_SIZE : size_t
     + CommandHistory()
@@ -416,7 +358,7 @@ abstract class Algorithm {
 abstract class PathFindingAlgorithm {
     + PathFindingAlgorithm(sys : TransportSystem*)
     + {virtual} ~PathFindingAlgorithm()
-    + findPath(start : string, end : string, departureTime : Time) : vector<Journey>
+    + findPath(start : string, end : string, departureTime : Time) : Deque<Journey>
     + execute() : void
 }
 
@@ -424,7 +366,7 @@ class BFSAlgorithm {
     - maxTransfers : int
     + BFSAlgorithm(sys : TransportSystem*, maxTransfers : int)
     + {virtual} ~BFSAlgorithm()
-    + findPath(start : string, end : string, departureTime : Time) : vector<Journey>
+    + findPath(start : string, end : string, departureTime : Time) : Deque<Journey>
     + execute() : void
     + getDescription() : string
 }
@@ -432,7 +374,7 @@ class BFSAlgorithm {
 class FastestPathAlgorithm {
     + FastestPathAlgorithm(sys : TransportSystem*)
     + {virtual} ~FastestPathAlgorithm()
-    + findPath(start : string, end : string, departureTime : Time) : vector<Journey>
+    + findPath(start : string, end : string, departureTime : Time) : Deque<Journey>
     + execute() : void
     + getDescription() : string
 }
@@ -440,7 +382,7 @@ class FastestPathAlgorithm {
 class MinimalTransfersAlgorithm {
     + MinimalTransfersAlgorithm(sys : TransportSystem*)
     + {virtual} ~MinimalTransfersAlgorithm()
-    + findPath(start : string, end : string, departureTime : Time) : vector<Journey>
+    + findPath(start : string, end : string, departureTime : Time) : Deque<Journey>
     + execute() : void
     + getDescription() : string
 }
@@ -456,7 +398,7 @@ class ArrivalTimeCalculationAlgorithm {
 class RouteSearchAlgorithm {
     + RouteSearchAlgorithm(sys : TransportSystem*)
     + {virtual} ~RouteSearchAlgorithm()
-    + findRoutes(stopA : string, stopB : string) : vector<shared_ptr<Route>>
+    + findRoutes(stopA : string, stopB : string) : Deque<shared_ptr<Route>>
     + execute() : void
     + getDescription() : string
 }
@@ -483,7 +425,7 @@ class DataManager {
 }
 
 class DriverSchedule {
-    - driverTrips : unordered_map<shared_ptr<Driver>, vector<shared_ptr<Trip>>>
+    - driverTrips : unordered_map<shared_ptr<Driver>, Deque<shared_ptr<Trip>>>
     - MAX_WORKING_HOURS : int
     + DriverSchedule()
     + ~DriverSchedule()
@@ -491,7 +433,7 @@ class DriverSchedule {
     + removeTripFromDriver(driver : shared_ptr<Driver>, tripId : int) : void
     + isDriverAvailable(driver : shared_ptr<Driver>, startTime : Time, endTime : Time) : bool
     + checkWorkingHoursCompliance(driver : shared_ptr<Driver>) : bool
-    + getDriverTrips(driver : shared_ptr<Driver>) : vector<shared_ptr<Trip>>
+    + getDriverTrips(driver : shared_ptr<Driver>) : Deque<shared_ptr<Trip>>
     + getTotalWorkingMinutes(driver : shared_ptr<Driver>) : int
 }
 
@@ -502,19 +444,19 @@ class JourneyPlanner {
     - minimalTransfersAlgorithm : unique_ptr<MinimalTransfersAlgorithm>
     + JourneyPlanner(sys : TransportSystem*)
     + ~JourneyPlanner()
-    + findJourneysWithTransfers(startStop : string, endStop : string, departureTime : Time, maxTransfers : int) : vector<Journey>
-    + findAllJourneysWithTransfers(startStop : string, endStop : string, maxTransfers : int) : vector<Journey>
+    + findJourneysWithTransfers(startStop : string, endStop : string, departureTime : Time, maxTransfers : int) : Deque<Journey>
+    + findAllJourneysWithTransfers(startStop : string, endStop : string, maxTransfers : int) : Deque<Journey>
     + findFastestJourney(startStop : string, endStop : string, departureTime : Time) : Journey
     + findJourneyWithLeastTransfers(startStop : string, endStop : string, departureTime : Time) : Journey
     + displayJourney(journey : Journey) : void
 }
 
 class TransportSystem {
-    - routes : vector<shared_ptr<Route>>
-    - trips : vector<shared_ptr<Trip>>
-    - vehicles : vector<shared_ptr<Vehicle>>
-    - drivers : vector<shared_ptr<Driver>>
-    - stops : DynamicArray<Stop>
+    - routes : Deque<shared_ptr<Route>>
+    - trips : Deque<shared_ptr<Trip>>
+    - vehicles : Deque<shared_ptr<Vehicle>>
+    - drivers : Deque<shared_ptr<Driver>>
+    - stops : Deque<Stop>
     - stopIdToName : unordered_map<int, string>
     - adminCredentials : unordered_map<string, string>
     - journeyPlanner : JourneyPlanner
@@ -534,7 +476,7 @@ class TransportSystem {
     + setAdminCredentials(creds : unordered_map<string, string>) : void
     + saveData() : void
     + loadData() : void
-    + findRoutes(stopA : string, stopB : string) : vector<shared_ptr<Route>>
+    + findRoutes(stopA : string, stopB : string) : Deque<shared_ptr<Route>>
     + getStopTimetable(stopId : int, startTime : Time, endTime : Time) : void
     + getStopTimetableAll(stopName : string) : void
     + calculateArrivalTimes(tripId : int, averageSpeed : double) : void
@@ -551,17 +493,17 @@ class TransportSystem {
     + displayAllTrips() : void
     + displayAllVehicles() : void
     + displayAllStops() : void
-    + getTrips() : const vector<shared_ptr<Trip>>&
-    + getRoutes() : const vector<shared_ptr<Route>>&
-    + getVehicles() : const vector<shared_ptr<Vehicle>>&
-    + getStops() : const DynamicArray<Stop>&
-    + getDrivers() : const vector<shared_ptr<Driver>>&
+    + getTrips() : const Deque<shared_ptr<Trip>>&
+    + getRoutes() : const Deque<shared_ptr<Route>>&
+    + getVehicles() : const Deque<shared_ptr<Vehicle>>&
+    + getStops() : const Deque<Stop>&
+    + getDrivers() : const Deque<shared_ptr<Driver>>&
     + getJourneyPlanner() : JourneyPlanner&
     + getDriverSchedule() : DriverSchedule&
     + findDriverByName(firstName : string, lastName : string, middleName : string) : shared_ptr<Driver>
     + findVehicleByLicensePlate(licensePlate : string) : shared_ptr<Vehicle>
     + findRouteByNumber(number : int) : shared_ptr<Route>
-    + getTripsThroughStop(stopName : string) : vector<shared_ptr<Trip>>
+    + getTripsThroughStop(stopName : string) : Deque<shared_ptr<Trip>>
     + getStopNameById(id : int) : string
     + getRouteByNumber(number : int) : shared_ptr<Route>
     + getTripById(id : int) : shared_ptr<Trip>
@@ -660,7 +602,5 @@ ArrivalTimeCalculationAlgorithm --> TransportSystem
 RouteSearchAlgorithm --> TransportSystem
 JourneyPlanner --> TransportSystem
 DataManager --> TransportSystem
-
-DynamicArray "1" *-- "0..*" "DynamicArray<T>::Iterator" : Iterator
 
 @enduml

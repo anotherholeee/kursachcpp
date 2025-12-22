@@ -1,7 +1,7 @@
 #include "route.h"
 #include <sstream>
 
-Route::Route(int num, const std::string& vType, const std::vector<std::string>& stops, 
+Route::Route(int num, const std::string& vType, const List<std::string>& stops,
           const std::set<int>& days)
     : number(num), vehicleType(vType), allStops(stops), weekDays(days) {
     if (stops.empty()) {
@@ -16,9 +16,12 @@ bool Route::containsStop(const std::string& stop) const {
 }
 
 int Route::getStopPosition(const std::string& stop) const {
-    auto it = std::find(allStops.begin(), allStops.end(), stop);
-    if (it != allStops.end()) {
-        return static_cast<int>(std::distance(allStops.begin(), it));
+    int pos = 0;
+    for (const auto& s : allStops) {
+        if (s == stop) {
+            return pos;
+        }
+        pos++;
     }
     return -1;
 }
@@ -45,7 +48,7 @@ std::string Route::getEndStop() const {
     return endStop;
 }
 
-const std::vector<std::string>& Route::getAllStops() const {
+const List<std::string>& Route::getAllStops() const {
     return allStops;
 }
 
@@ -79,7 +82,7 @@ std::shared_ptr<Route> Route::deserialize(const std::string& data) {
     std::getline(ss, stopsStr, '|');
     std::getline(ss, daysStr);
 
-    std::vector<std::string> stops;
+    List<std::string> stops;
     std::istringstream stopsStream(stopsStr);
     std::string stop;
     while (std::getline(stopsStream, stop, ';')) {
@@ -99,4 +102,3 @@ std::shared_ptr<Route> Route::deserialize(const std::string& data) {
 
     return std::make_shared<Route>(std::stoi(numberStr), vehicleType, stops, weekDays);
 }
-

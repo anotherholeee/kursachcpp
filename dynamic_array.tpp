@@ -166,4 +166,3 @@ typename DynamicArray<T>::Iterator DynamicArray<T>::end() const {
 }
 
 #endif // DYNAMIC_ARRAY_TPP
-

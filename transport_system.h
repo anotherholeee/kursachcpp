@@ -1,11 +1,10 @@
 #ifndef TRANSPORT_SYSTEM_H
 #define TRANSPORT_SYSTEM_H
 
-#include <vector>
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include "dynamic_array.h"
+#include "list.h"
 #include "stop.h"
 #include "route.h"
 #include "trip.h"
@@ -25,11 +24,11 @@
 
 class TransportSystem {
 private:
-    std::vector<std::shared_ptr<Route>> routes;
-    std::vector<std::shared_ptr<Trip>> trips;
-    std::vector<std::shared_ptr<Vehicle>> vehicles;
-    std::vector<std::shared_ptr<Driver>> drivers;
-    DynamicArray<Stop> stops;
+    List<std::shared_ptr<Route>> routes;
+    List<std::shared_ptr<Trip>> trips;
+    List<std::shared_ptr<Vehicle>> vehicles;
+    List<std::shared_ptr<Driver>> drivers;
+    List<Stop> stops;
     std::unordered_map<int, std::string> stopIdToName;
     std::unordered_map<std::string, std::string> adminCredentials;
 
@@ -60,7 +59,7 @@ public:
     void saveData();
     void loadData();
 
-    std::vector<std::shared_ptr<Route>> findRoutes(const std::string& stopA, const std::string& stopB);
+    List<std::shared_ptr<Route>> findRoutes(const std::string& stopA, const std::string& stopB);
     void getStopTimetable(int stopId, const Time& startTime, const Time& endTime);
     void getStopTimetableAll(const std::string& stopName);
     void calculateArrivalTimes(int tripId, double averageSpeed);
@@ -82,11 +81,11 @@ public:
     void displayAllVehicles() const;
     void displayAllStops() const;
 
-    const std::vector<std::shared_ptr<Trip>>& getTrips() const;
-    const std::vector<std::shared_ptr<Route>>& getRoutes() const;
-    const std::vector<std::shared_ptr<Vehicle>>& getVehicles() const;
-    const DynamicArray<Stop>& getStops() const;
-    const std::vector<std::shared_ptr<Driver>>& getDrivers() const;
+    const List<std::shared_ptr<Trip>>& getTrips() const;
+    const List<std::shared_ptr<Route>>& getRoutes() const;
+    const List<std::shared_ptr<Vehicle>>& getVehicles() const;
+    const List<Stop>& getStops() const;
+    const List<std::shared_ptr<Driver>>& getDrivers() const;
 
     JourneyPlanner& getJourneyPlanner();
     DriverSchedule& getDriverSchedule();
@@ -96,7 +95,7 @@ public:
                                             const std::string& middleName = "") const;
     std::shared_ptr<Vehicle> findVehicleByLicensePlate(const std::string& licensePlate) const;
     std::shared_ptr<Route> findRouteByNumber(int number) const;
-    std::vector<std::shared_ptr<Trip>> getTripsThroughStop(const std::string& stopName) const;
+    List<std::shared_ptr<Trip>> getTripsThroughStop(const std::string& stopName) const;
     std::string getStopNameById(int id) const;
 
     std::shared_ptr<Route> getRouteByNumber(int number);

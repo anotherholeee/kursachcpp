@@ -68,7 +68,7 @@ void TransportSystem::loadData() {
     dataManager.loadAllData(*this);
 }
 
-std::vector<std::shared_ptr<Route>> TransportSystem::findRoutes(const std::string& stopA, const std::string& stopB) {
+List<std::shared_ptr<Route>> TransportSystem::findRoutes(const std::string& stopA, const std::string& stopB) {
     // Используем алгоритм поиска маршрутов
     return routeSearchAlgorithm->findRoutes(stopA, stopB);
 }
@@ -80,7 +80,7 @@ void TransportSystem::getStopTimetable(int stopId, const Time& startTime, const 
     }
     const std::string& stopName = it->second;
 
-    std::vector<std::pair<int, Time>> relevantTrips;
+    List<std::pair<int, Time>> relevantTrips;
 
     for (const auto& trip : trips) {
         if (trip->hasStop(stopName)) {
@@ -91,8 +91,8 @@ void TransportSystem::getStopTimetable(int stopId, const Time& startTime, const 
         }
     }
 
-    std::sort(relevantTrips.begin(), relevantTrips.end(),
-              [](const auto& a, const auto& b) { return a.second < b.second; });
+    // Сортируем используя метод sort
+    relevantTrips.sort([](const auto& a, const auto& b) { return a.second < b.second; });
 
     std::cout << "\nРасписание для остановки '" << stopName << "' с "
               << startTime << " по " << endTime << ":\n";
@@ -106,7 +106,7 @@ void TransportSystem::getStopTimetable(int stopId, const Time& startTime, const 
 }
 
 void TransportSystem::getStopTimetableAll(const std::string& stopName) {
-    std::vector<std::pair<int, Time>> relevantTrips;
+    List<std::pair<int, Time>> relevantTrips;
 
     for (const auto& trip : trips) {
         if (trip->hasStop(stopName)) {
@@ -115,8 +115,8 @@ void TransportSystem::getStopTimetableAll(const std::string& stopName) {
         }
     }
 
-    std::sort(relevantTrips.begin(), relevantTrips.end(),
-              [](const auto& a, const auto& b) { return a.second < b.second; });
+    // Сортируем используя метод sort
+    relevantTrips.sort([](const auto& a, const auto& b) { return a.second < b.second; });
 
     std::cout << "\nРасписание для остановки '" << stopName << "':\n";
     if (relevantTrips.empty()) {
@@ -154,17 +154,6 @@ void TransportSystem::addTrip(std::shared_ptr<Trip> trip) {
     for (const auto& existingTrip : trips) {
         if (existingTrip->getTripId() == trip->getTripId()) {
             throw ContainerException("Рейс с ID " + std::to_string(trip->getTripId()) + " уже существует");
-        }
-    }
-
-    // Проверяем, что день недели рейса соответствует дням недели маршрута
-    auto route = trip->getRoute();
-    if (route) {
-        int tripWeekDay = trip->getWeekDay();
-        if (!route->operatesOnDay(tripWeekDay)) {
-            throw ContainerException("Рейс не может быть создан: маршрут №" + 
-                std::to_string(route->getNumber()) + " не работает в день недели " + 
-                std::to_string(tripWeekDay));
         }
     }
 
@@ -271,23 +260,23 @@ void TransportSystem::displayAllStops() const {
     }
 }
 
-const std::vector<std::shared_ptr<Trip>>& TransportSystem::getTrips() const {
+const List<std::shared_ptr<Trip>>& TransportSystem::getTrips() const {
     return trips;
 }
 
-const std::vector<std::shared_ptr<Route>>& TransportSystem::getRoutes() const {
+const List<std::shared_ptr<Route>>& TransportSystem::getRoutes() const {
     return routes;
 }
 
-const std::vector<std::shared_ptr<Vehicle>>& TransportSystem::getVehicles() const {
+const List<std::shared_ptr<Vehicle>>& TransportSystem::getVehicles() const {
     return vehicles;
 }
 
-const DynamicArray<Stop>& TransportSystem::getStops() const {
+const List<Stop>& TransportSystem::getStops() const {
     return stops;
 }
 
-const std::vector<std::shared_ptr<Driver>>& TransportSystem::getDrivers() const {
+const List<std::shared_ptr<Driver>>& TransportSystem::getDrivers() const {
     return drivers;
 }
 
@@ -330,8 +319,8 @@ std::shared_ptr<Route> TransportSystem::findRouteByNumber(int number) const {
     return nullptr;
 }
 
-std::vector<std::shared_ptr<Trip>> TransportSystem::getTripsThroughStop(const std::string& stopName) const {
-    std::vector<std::shared_ptr<Trip>> result;
+List<std::shared_ptr<Trip>> TransportSystem::getTripsThroughStop(const std::string& stopName) const {
+    List<std::shared_ptr<Trip>> result;
     for (const auto& trip : trips) {
         if (trip->hasStop(stopName)) {
             result.push_back(trip);

@@ -18,12 +18,12 @@
 DataManager::DataManager(const std::string& dir) {
     // Нормализуем путь к папке data
     std::filesystem::path dataPath(dir);
-    
+
     // Если путь относительный, делаем его абсолютным относительно текущей рабочей директории
     if (dataPath.is_relative()) {
         dataPath = std::filesystem::current_path() / dataPath;
     }
-    
+
     // Нормализуем путь (убираем лишние слеши и т.д.)
     try {
         if (std::filesystem::exists(dataPath)) {
@@ -40,7 +40,7 @@ DataManager::DataManager(const std::string& dir) {
         // Создаем папку, если её нет
         std::filesystem::create_directories(dataPath);
     }
-    
+
     // Сохраняем путь как строку с завершающим слешем
     dataDirectory = dataPath.string();
     // Нормализуем разделители для Windows
@@ -48,58 +48,58 @@ DataManager::DataManager(const std::string& dir) {
     if (dataDirectory.back() != '/') {
         dataDirectory += "/";
     }
-    
+
     std::cout << "[DEBUG] Папка данных: " << dataDirectory << std::endl;
     std::cout << "[DEBUG] Текущая рабочая директория: " << std::filesystem::current_path().string() << std::endl;
 }
 
 void DataManager::saveAllData(TransportSystem& system) {
     std::cout << "Сохранение данных в файлы...\n";
-    
+
     bool hasErrors = false;
-    
+
     try {
         saveStops(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении остановок: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     try {
         saveVehicles(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении транспорта: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     try {
         saveDrivers(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении водителей: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     try {
         saveRoutes(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении маршрутов: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     try {
         saveTrips(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении рейсов: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     try {
         saveAdminCredentials(system);
     } catch (const std::exception& e) {
         std::cout << "[ERROR] Ошибка при сохранении учетных данных: " << e.what() << "\n";
         hasErrors = true;
     }
-    
+
     if (hasErrors) {
         std::cout << "Данные сохранены с ошибками!\n";
     } else {
@@ -110,7 +110,7 @@ void DataManager::saveAllData(TransportSystem& system) {
 void DataManager::loadAllData(TransportSystem& system) {
     try {
         std::cout << "[DEBUG] Начало загрузки данных из папки: " << dataDirectory << std::endl;
-        
+
         // Проверяем существование папки и файлов
         std::filesystem::path dataPath(dataDirectory);
         if (!std::filesystem::exists(dataPath)) {
@@ -118,9 +118,14 @@ void DataManager::loadAllData(TransportSystem& system) {
             std::cout << "[DEBUG] Создаем папку данных..." << std::endl;
             std::filesystem::create_directories(dataPath);
         }
-        
+
         // Проверяем существование файлов
-        std::vector<std::string> files = {"stops.txt", "vehicles.txt", "drivers.txt", "routes.txt", "trips.txt"};
+        List<std::string> files;
+        files.push_back("stops.txt");
+        files.push_back("vehicles.txt");
+        files.push_back("drivers.txt");
+        files.push_back("routes.txt");
+        files.push_back("trips.txt");
         for (const auto& fileName : files) {
             std::filesystem::path filePath = dataPath / fileName;
             if (std::filesystem::exists(filePath)) {
@@ -130,7 +135,7 @@ void DataManager::loadAllData(TransportSystem& system) {
                 std::cout << "[DEBUG] ВНИМАНИЕ: Файл " << fileName << " не существует: " << filePath.string() << std::endl;
             }
         }
-        
+
         loadStops(system);
         std::cout << "[DEBUG] Остановки загружены: " << system.getStops().size() << std::endl;
         loadVehicles(system);
@@ -219,7 +224,7 @@ void DataManager::saveRoutes(TransportSystem& system) {
     const auto& routes = system.getRoutes();
     const auto& trips = system.getTrips();
     int savedCount = 0;
-    
+
     for (const auto& route : routes) {
         // Собираем реальные дни недели из рейсов этого маршрута
         std::set<int> actualWeekDays;
@@ -228,28 +233,28 @@ void DataManager::saveRoutes(TransportSystem& system) {
                 actualWeekDays.insert(trip->getWeekDay());
             }
         }
-        
+
         // Если для маршрута нет рейсов, используем дни недели из самого маршрута
         if (actualWeekDays.empty()) {
             actualWeekDays = route->getWeekDays();
         }
-        
+
         // Формируем строку сериализации с реальными днями недели
         std::string result = std::to_string(route->getNumber()) + "|" + route->getVehicleType() + "|";
-        
+
         const auto& allStops = route->getAllStops();
         for (size_t i = 0; i < allStops.size(); ++i) {
             result += allStops[i];
             if (i < allStops.size() - 1) result += ";";
         }
         result += "|";
-        
+
         // Сохраняем реальные дни недели
         for (auto it = actualWeekDays.begin(); it != actualWeekDays.end(); ++it) {
             result += std::to_string(*it);
             if (std::next(it) != actualWeekDays.end()) result += ",";
         }
-        
+
         file << result << "\n";
         savedCount++;
     }
@@ -309,23 +314,23 @@ void DataManager::loadStops(TransportSystem& system) {
     int loadedCount = 0;
     int emptyLines = 0;
     int errorLines = 0;
-    
+
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         // Убираем пробелы в начале и конце строки
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         try {
             Stop stop = Stop::deserialize(line);
             // Проверяем на дубликаты перед добавлением
@@ -350,12 +355,12 @@ void DataManager::loadStops(TransportSystem& system) {
             continue;
         }
     }
-    
+
     if (file.bad() && !file.eof()) {
         throw FileException("stops.txt", "ошибка чтения файла");
     }
     file.close();
-    
+
     std::cout << "[DEBUG] Всего загружено остановок: " << loadedCount << std::endl;
     if (emptyLines > 0) {
         std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
@@ -363,7 +368,7 @@ void DataManager::loadStops(TransportSystem& system) {
     if (errorLines > 0) {
         std::cout << "[DEBUG] Ошибок при загрузке: " << errorLines << std::endl;
     }
-    
+
     if (loadedCount == 0 && lineNumber == 0) {
         std::cout << "[DEBUG] ВНИМАНИЕ: Файл stops.txt пуст или не содержит данных!" << std::endl;
     }
@@ -383,30 +388,30 @@ void DataManager::loadVehicles(TransportSystem& system) {
     int loadedCount = 0;
     int emptyLines = 0;
     int errorLines = 0;
-    
+
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         // Убираем пробелы в начале и конце строки
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         try {
             std::istringstream ss(line);
             std::string type, model, licensePlate;
             std::getline(ss, type, '|');
             std::getline(ss, model, '|');
-            std::getline(ss, licensePlate);
-            
+            std::getline(ss, licensePlate, '|');
+
             // Убираем пробелы из полей
             type.erase(0, type.find_first_not_of(" \t"));
             type.erase(type.find_last_not_of(" \t") + 1);
@@ -424,15 +429,73 @@ void DataManager::loadVehicles(TransportSystem& system) {
                     break;
                 }
             }
-            
+
             if (!exists) {
                 std::shared_ptr<Vehicle> vehicle;
                 if (type == "Автобус") {
-                    vehicle = std::make_shared<Bus>(model, licensePlate);
+                    // Читаем capacity и fuelType для автобуса
+                    std::string capacityStr, fuelType;
+                    std::getline(ss, capacityStr, '|');
+                    std::getline(ss, fuelType);
+                    int capacity = 50; // значение по умолчанию
+                    if (!capacityStr.empty()) {
+                        try {
+                            capacity = std::stoi(capacityStr);
+                        } catch (...) {
+                            // Используем значение по умолчанию
+                        }
+                    }
+                    if (fuelType.empty()) {
+                        fuelType = "дизель";
+                    }
+                    // Убираем пробелы
+                    fuelType.erase(0, fuelType.find_first_not_of(" \t"));
+                    fuelType.erase(fuelType.find_last_not_of(" \t") + 1);
+                    vehicle = std::make_shared<Bus>(model, licensePlate, capacity, fuelType);
                 } else if (type == "Трамвай") {
-                    vehicle = std::make_shared<Tram>(model, licensePlate);
+                    // Читаем capacity и voltage для трамвая
+                    std::string capacityStr, voltageStr;
+                    std::getline(ss, capacityStr, '|');
+                    std::getline(ss, voltageStr);
+                    int capacity = 100; // значение по умолчанию
+                    double voltage = 600.0; // значение по умолчанию
+                    if (!capacityStr.empty()) {
+                        try {
+                            capacity = std::stoi(capacityStr);
+                        } catch (...) {
+                            // Используем значение по умолчанию
+                        }
+                    }
+                    if (!voltageStr.empty()) {
+                        try {
+                            voltage = std::stod(voltageStr);
+                        } catch (...) {
+                            // Используем значение по умолчанию
+                        }
+                    }
+                    vehicle = std::make_shared<Tram>(model, licensePlate, capacity, voltage);
                 } else if (type == "Троллейбус") {
-                    vehicle = std::make_shared<Trolleybus>(model, licensePlate);
+                    // Читаем capacity и voltage для троллейбуса
+                    std::string capacityStr, voltageStr;
+                    std::getline(ss, capacityStr, '|');
+                    std::getline(ss, voltageStr);
+                    int capacity = 50; // значение по умолчанию
+                    double voltage = 600.0; // значение по умолчанию
+                    if (!capacityStr.empty()) {
+                        try {
+                            capacity = std::stoi(capacityStr);
+                        } catch (...) {
+                            // Используем значение по умолчанию
+                        }
+                    }
+                    if (!voltageStr.empty()) {
+                        try {
+                            voltage = std::stod(voltageStr);
+                        } catch (...) {
+                            // Используем значение по умолчанию
+                        }
+                    }
+                    vehicle = std::make_shared<Trolleybus>(model, licensePlate, capacity, voltage);
                 } else {
                     throw InputException("Неизвестный тип транспорта: " + type);
                 }
@@ -450,12 +513,12 @@ void DataManager::loadVehicles(TransportSystem& system) {
             continue;
         }
     }
-    
+
     if (file.bad() && !file.eof()) {
         throw FileException("vehicles.txt", "ошибка чтения файла");
     }
     file.close();
-    
+
     std::cout << "[DEBUG] Всего загружено транспорта: " << loadedCount << std::endl;
     if (emptyLines > 0) {
         std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
@@ -463,7 +526,7 @@ void DataManager::loadVehicles(TransportSystem& system) {
     if (errorLines > 0) {
         std::cout << "[DEBUG] Ошибок при загрузке транспорта: " << errorLines << std::endl;
     }
-    
+
     if (loadedCount == 0 && lineNumber == 0) {
         std::cout << "[DEBUG] ВНИМАНИЕ: Файл vehicles.txt пуст или не содержит данных!" << std::endl;
     }
@@ -483,23 +546,23 @@ void DataManager::loadDrivers(TransportSystem& system) {
     int loadedCount = 0;
     int emptyLines = 0;
     int errorLines = 0;
-    
+
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         // Убираем пробелы в начале и конце строки
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         try {
                 // Проверяем, что строка не содержит данные транспорта (формат: тип|модель|номер)
                 // Водители должны быть в формате: имя|фамилия|отчество
@@ -509,13 +572,13 @@ void DataManager::loadDrivers(TransportSystem& system) {
                 std::getline(testStream, firstPart, '|');
                 std::getline(testStream, secondPart, '|');
                 std::getline(testStream, thirdPart);
-                
+
                 // Проверяем, что первая часть не является типом транспорта
                 if (firstPart == "Автобус" || firstPart == "Трамвай" || firstPart == "Троллейбус") {
                     std::cout << "[DEBUG] Пропущена строка с данными транспорта в drivers.txt (строка " << lineNumber << "): " << line << std::endl;
                     continue;
                 }
-                
+
                 // Проверяем, что первая часть выглядит как имя (не номерной знак транспорта)
                 // Номерные знаки обычно содержат пробелы и цифры в определенном формате
                 // Имена обычно начинаются с буквы и не содержат только цифры
@@ -524,7 +587,7 @@ void DataManager::loadDrivers(TransportSystem& system) {
                     std::cout << "[DEBUG] Пропущена строка с неправильным форматом в drivers.txt (строка " << lineNumber << "): " << line << std::endl;
                     continue;
                 }
-                
+
                 auto driver = Driver::deserialize(line);
                 // Проверяем на дубликаты перед добавлением
                 bool exists = false;
@@ -551,12 +614,12 @@ void DataManager::loadDrivers(TransportSystem& system) {
             continue;
         }
     }
-    
+
     if (file.bad() && !file.eof()) {
         throw FileException("drivers.txt", "ошибка чтения файла");
     }
     file.close();
-    
+
     std::cout << "[DEBUG] Всего загружено водителей: " << loadedCount << std::endl;
     if (emptyLines > 0) {
         std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
@@ -564,7 +627,7 @@ void DataManager::loadDrivers(TransportSystem& system) {
     if (errorLines > 0) {
         std::cout << "[DEBUG] Ошибок при загрузке водителей: " << errorLines << std::endl;
     }
-    
+
     if (loadedCount == 0 && lineNumber == 0) {
         std::cout << "[DEBUG] ВНИМАНИЕ: Файл drivers.txt пуст или не содержит данных!" << std::endl;
     }
@@ -584,23 +647,23 @@ void DataManager::loadRoutes(TransportSystem& system) {
     int loadedCount = 0;
     int emptyLines = 0;
     int errorLines = 0;
-    
+
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         // Убираем пробелы в начале и конце строки
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         try {
             auto route = Route::deserialize(line);
             // Проверяем на дубликаты перед добавлением
@@ -626,12 +689,12 @@ void DataManager::loadRoutes(TransportSystem& system) {
             continue;
         }
     }
-    
+
     if (file.bad() && !file.eof()) {
         throw FileException("routes.txt", "ошибка чтения файла");
     }
     file.close();
-    
+
     std::cout << "[DEBUG] Всего загружено маршрутов: " << loadedCount << std::endl;
     if (emptyLines > 0) {
         std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
@@ -639,7 +702,7 @@ void DataManager::loadRoutes(TransportSystem& system) {
     if (errorLines > 0) {
         std::cout << "[DEBUG] Ошибок при загрузке маршрутов: " << errorLines << std::endl;
     }
-    
+
     if (loadedCount == 0 && lineNumber == 0) {
         std::cout << "[DEBUG] ВНИМАНИЕ: Файл routes.txt пуст или не содержит данных!" << std::endl;
     }
@@ -659,23 +722,23 @@ void DataManager::loadTrips(TransportSystem& system) {
     int loadedCount = 0;
     int emptyLines = 0;
     int errorLines = 0;
-    
+
     while (std::getline(file, line)) {
         lineNumber++;
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         // Убираем пробелы в начале и конце строки
         line.erase(0, line.find_first_not_of(" \t\r\n"));
         line.erase(line.find_last_not_of(" \t\r\n") + 1);
-        
+
         if (line.empty()) {
             emptyLines++;
             continue;
         }
-        
+
         try {
             auto trip = Trip::deserialize(line, &system);
             // Проверяем на дубликаты перед добавлением
@@ -702,12 +765,12 @@ void DataManager::loadTrips(TransportSystem& system) {
             continue;
         }
     }
-    
+
     if (file.bad() && !file.eof()) {
         throw FileException("trips.txt", "ошибка чтения файла");
     }
     file.close();
-    
+
     std::cout << "[DEBUG] Всего загружено рейсов: " << loadedCount << std::endl;
     if (emptyLines > 0) {
         std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
@@ -715,7 +778,7 @@ void DataManager::loadTrips(TransportSystem& system) {
     if (errorLines > 0) {
         std::cout << "[DEBUG] Ошибок при загрузке рейсов: " << errorLines << std::endl;
     }
-    
+
     if (loadedCount == 0 && lineNumber == 0) {
         std::cout << "[DEBUG] ВНИМАНИЕ: Файл trips.txt пуст или не содержит данных!" << std::endl;
     }
@@ -745,4 +808,3 @@ void DataManager::loadAdminCredentials(TransportSystem& system) {
 
     system.setAdminCredentials(creds);
 }
-

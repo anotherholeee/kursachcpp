@@ -1,9 +1,9 @@
 #ifndef ALGORITHM_H
 #define ALGORITHM_H
 
-#include <vector>
 #include <string>
 #include <memory>
+#include "list.h"
 #include "journey.h"
 #include "time.h"
 #include "route.h"
@@ -22,10 +22,10 @@ public:
 
     // Виртуальный метод выполнения алгоритма
     virtual void execute() = 0;
-    
+
     // Получение описания алгоритма
     virtual std::string getDescription() const = 0;
-    
+
     // Установка системы (для работы с const методами)
     void setSystem(TransportSystem* sys) { system = sys; }
 };
@@ -34,11 +34,11 @@ public:
 class PathFindingAlgorithm : public Algorithm {
 public:
     explicit PathFindingAlgorithm(TransportSystem* sys) : Algorithm(sys) {}
-    
-    virtual std::vector<Journey> findPath(const std::string& start, 
+
+    virtual List<Journey> findPath(const std::string& start,
                                          const std::string& end,
                                          const Time& departureTime) = 0;
-    
+
     void execute() override {}
 };
 
@@ -48,10 +48,10 @@ private:
     int maxTransfers;
 
 public:
-    BFSAlgorithm(TransportSystem* sys, int maxTransfers = 2) 
+    BFSAlgorithm(TransportSystem* sys, int maxTransfers = 2)
         : PathFindingAlgorithm(sys), maxTransfers(maxTransfers) {}
 
-    std::vector<Journey> findPath(const std::string& start, 
+    List<Journey> findPath(const std::string& start,
                                  const std::string& end,
                                  const Time& departureTime) override;
 
@@ -69,7 +69,7 @@ class FastestPathAlgorithm : public PathFindingAlgorithm {
 public:
     explicit FastestPathAlgorithm(TransportSystem* sys) : PathFindingAlgorithm(sys) {}
 
-    std::vector<Journey> findPath(const std::string& start, 
+    List<Journey> findPath(const std::string& start,
                                  const std::string& end,
                                  const Time& departureTime) override;
 
@@ -85,7 +85,7 @@ class MinimalTransfersAlgorithm : public PathFindingAlgorithm {
 public:
     explicit MinimalTransfersAlgorithm(TransportSystem* sys) : PathFindingAlgorithm(sys) {}
 
-    std::vector<Journey> findPath(const std::string& start, 
+    List<Journey> findPath(const std::string& start,
                                  const std::string& end,
                                  const Time& departureTime) override;
 
@@ -117,7 +117,7 @@ class RouteSearchAlgorithm : public Algorithm {
 public:
     explicit RouteSearchAlgorithm(TransportSystem* sys) : Algorithm(sys) {}
 
-    std::vector<std::shared_ptr<Route>> findRoutes(const std::string& stopA, 
+    List<std::shared_ptr<Route>> findRoutes(const std::string& stopA,
                                                    const std::string& stopB);
 
     void execute() override {}
@@ -128,4 +128,3 @@ public:
 };
 
 #endif // ALGORITHM_H
-

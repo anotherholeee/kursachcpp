@@ -7,10 +7,13 @@ void DriverSchedule::assignTripToDriver(std::shared_ptr<Driver> driver,
 
 void DriverSchedule::removeTripFromDriver(std::shared_ptr<Driver> driver, int tripId) {
     auto& trips = driverTrips[driver];
-    trips.erase(std::remove_if(trips.begin(), trips.end(),
-        [tripId](const auto& trip) {
-            return trip->getTripId() == tripId;
-        }), trips.end());
+    for (auto it = trips.begin(); it != trips.end(); ) {
+        if ((*it)->getTripId() == tripId) {
+            it = trips.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 bool DriverSchedule::isDriverAvailable(std::shared_ptr<Driver> driver,
@@ -42,17 +45,16 @@ bool DriverSchedule::checkWorkingHoursCompliance(std::shared_ptr<Driver> driver)
     return totalMinutes <= MAX_WORKING_HOURS;
 }
 
-std::vector<std::shared_ptr<Trip>> DriverSchedule::getDriverTrips(
+List<std::shared_ptr<Trip>> DriverSchedule::getDriverTrips(
     std::shared_ptr<Driver> driver) const {
     auto it = driverTrips.find(driver);
     if (it != driverTrips.end()) {
         return it->second;
     }
-    return {};
+    return List<std::shared_ptr<Trip>>();
 }
 
 int DriverSchedule::getTotalWorkingMinutes(std::shared_ptr<Driver> driver) const {
     auto trips = getDriverTrips(driver);
     return static_cast<int>(trips.size()) * 60;
 }
-

@@ -83,10 +83,10 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
     // Парсим строку
     // Новый формат: tripId|route_number|vehicle(5)|driver(4)|time|weekDay|schedule = 13 токенов
     // Старый формат: tripId|route(4)|vehicle(5)|driver(4)|time|weekDay|schedule = 17 токенов
-    
+
     std::istringstream ss(data);
     std::string token;
-    std::vector<std::string> tokens;
+    List<std::string> tokens;
 
     while (std::getline(ss, token, '|')) {
         tokens.push_back(token);
@@ -104,7 +104,7 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
     // Определяем формат: новый (только номер маршрута) или старый (полная сериализация маршрута)
     // Новый формат: tripId|route_number|vehicle(5)|driver(4)|time|weekDay|schedule = 13 токенов (или 11 если vehicle без capacity)
     // Старый формат: tripId|route(4)|vehicle(5)|driver(4)|time|weekDay|schedule = 17 токенов
-    
+
     // Проверяем: если tokens[2] - это тип транспорта (Автобус, Трамвай, Троллейбус), то это старый формат
     // В новом формате tokens[1] - это номер маршрута (число), tokens[2] - это тип транспорта vehicle
     bool isNewFormat = false;
@@ -123,28 +123,29 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
         // Мало токенов - вероятно новый формат
         isNewFormat = true;
     }
-    
+
     if (isNewFormat) {
         // Новый формат: только номер маршрута
         if (!system) {
             throw InputException("Для загрузки рейса требуется система (для поиска маршрута по номеру)");
         }
-        
+
         int routeNumber = std::stoi(tokens[1]);
         route = system->getRouteByNumber(routeNumber);
         if (!route) {
             throw ContainerException("Маршрут с номером " + std::to_string(routeNumber) + " не найден");
         }
-        
+
         vehicleTokenIndex = 2;
-        
-        // Определяем количество токенов vehicle (проверяем tokens[4] - это capacity или нет)
-        bool vehicleHasCapacity = (tokens.size() > 4 && !tokens[4].empty() && 
-                                   (std::isdigit(static_cast<unsigned char>(tokens[4][0])) || 
-                                    (tokens[4][0] == '-' && tokens[4].length() > 1 && 
-                                     std::isdigit(static_cast<unsigned char>(tokens[4][1])))));
+
+        // Определяем количество токенов vehicle
+        // Для Bus, Tram, Trolleybus всегда 5 токенов (type|model|licensePlate|capacity|fuelType/voltage)
+        // Для базового Vehicle - 3 токена (type|model|licensePlate)
+        // Проверяем тип vehicle (tokens[2]) - если это "Автобус", "Трамвай" или "Троллейбус", то vehicle имеет 5 токенов
+        std::string vehicleType = tokens[2];
+        bool vehicleHasCapacity = (vehicleType == "Автобус" || vehicleType == "Трамвай" || vehicleType == "Троллейбус");
         int vehicleTokenCount = vehicleHasCapacity ? 5 : 3;
-        
+
         driverTokenIndex = 2 + vehicleTokenCount;  // driver после vehicle
         timeTokenIndex = driverTokenIndex + 4;      // time после driver (4 токена)
         scheduleTokenIndex = timeTokenIndex + 2;    // schedule после time и weekDay
@@ -152,22 +153,22 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
         // Старый формат: полная сериализация маршрута
         // Проверяем наличие weekDays в route (токен с запятыми)
         bool hasRouteWeekDays = (tokens.size() > 4 && tokens[4].find(',') != std::string::npos);
-    
+
     int routeTokenCount = hasRouteWeekDays ? 4 : 3;
     int routeEndIndex = 1 + routeTokenCount;  // Индекс после route
-    
+
     // Проверяем, сколько токенов у vehicle (5 для FuelTransport/ElectricTransport или 3 для базового Vehicle)
     // Проверяем токен после vehicle licensePlate (токен routeEndIndex + 2) - если это число, то это capacity
     int vehicleLicensePlateIndex = routeEndIndex + 2;  // vehicle: type(routeEndIndex), model(routeEndIndex+1), licensePlate(routeEndIndex+2)
-    bool vehicleHasCapacity = (tokens.size() > vehicleLicensePlateIndex + 1 && 
-                               !tokens[vehicleLicensePlateIndex + 1].empty() && 
-                               (std::isdigit(static_cast<unsigned char>(tokens[vehicleLicensePlateIndex + 1][0])) || 
-                                (tokens[vehicleLicensePlateIndex + 1][0] == '-' && 
-                                 tokens[vehicleLicensePlateIndex + 1].length() > 1 && 
+    bool vehicleHasCapacity = (tokens.size() > vehicleLicensePlateIndex + 1 &&
+                               !tokens[vehicleLicensePlateIndex + 1].empty() &&
+                               (std::isdigit(static_cast<unsigned char>(tokens[vehicleLicensePlateIndex + 1][0])) ||
+                                (tokens[vehicleLicensePlateIndex + 1][0] == '-' &&
+                                 tokens[vehicleLicensePlateIndex + 1].length() > 1 &&
                                  std::isdigit(static_cast<unsigned char>(tokens[vehicleLicensePlateIndex + 1][1])))));
-    
+
     int vehicleTokenCount = vehicleHasCapacity ? 5 : 3;
-    
+
     if (hasRouteWeekDays) {
         // Route с weekDays (4 токена)
         std::string routeData = tokens[1] + "|" + tokens[2] + "|" + tokens[3] + "|" + tokens[4];
@@ -317,7 +318,7 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
         throw InputException("Недостаточно токенов для времени отправления");
     }
     Time startTime = Time::deserialize(tokens[timeTokenIndex]);
-    
+
     int weekDay = 1;
     // weekDay находится сразу после startTime
     if (timeTokenIndex + 1 < tokens.size()) {
@@ -362,4 +363,3 @@ std::shared_ptr<Trip> Trip::deserialize(const std::string& data, TransportSystem
 
     return trip;
 }
-

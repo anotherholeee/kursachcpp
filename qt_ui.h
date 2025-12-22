@@ -150,7 +150,7 @@ class TransportScheduleDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit TransportScheduleDialog(TransportSystem* system, QWidget *parent = nullptr);
+    explicit TransportScheduleDialog(TransportSystem* system, QWidget *parent = nullptr, bool isGuestMode = false);
 
 private slots:
     void onVehicleTypeChanged();
@@ -164,6 +164,7 @@ private:
     QComboBox* routeComboBox;
     QComboBox* weekDayComboBox;
     QTableWidget* scheduleTable;
+    bool isGuestMode;
     void populateSchedule(const std::string& vehicleType = "", int weekDay = 0, int routeNumber = 0);
     void populateRoutes(const std::string& vehicleType);
 };
@@ -173,7 +174,7 @@ class StopTimetableDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit StopTimetableDialog(TransportSystem* system, QWidget *parent = nullptr);
+    explicit StopTimetableDialog(TransportSystem* system, QWidget *parent = nullptr, bool isGuestMode = false);
 
 private slots:
     void onStopSelected();
@@ -184,6 +185,7 @@ private:
     QComboBox* stopComboBox;
     QComboBox* weekDayComboBox;
     QTableWidget* timetableTable;
+    bool isGuestMode;
     void populateStops();
     void populateTimetable(const std::string& stopName, int weekDay = 0);
 };

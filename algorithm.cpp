@@ -4,16 +4,16 @@
 #include <queue>
 #include <algorithm>
 
-std::vector<Journey> BFSAlgorithm::findPath(const std::string& start, 
+List<Journey> BFSAlgorithm::findPath(const std::string& start,
                                            const std::string& end,
                                            const Time& departureTime) {
-    std::vector<Journey> journeys;
+    List<Journey> journeys;
 
     struct SearchNode {
         std::string currentStop;
         Time currentTime;
-        std::vector<std::shared_ptr<Trip>> pathTrips;
-        std::vector<std::string> transferPoints;
+        List<std::shared_ptr<Trip>> pathTrips;
+        List<std::string> transferPoints;
         int transfers;
     };
 
@@ -25,8 +25,8 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
         q.pop();
 
         if (node.currentStop == end) {
-            journeys.emplace_back(node.pathTrips, node.transferPoints,
-                                 departureTime, node.currentTime);
+            journeys.push_back(Journey(node.pathTrips, node.transferPoints,
+                                 departureTime, node.currentTime));
             continue;
         }
 
@@ -59,12 +59,12 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
 
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
-                
+
                 // Проверяем, что время прибытия рассчитано для следующей остановки
                 if (!trip->hasStop(nextStop)) {
                     continue;
                 }
-                
+
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
                 SearchNode nextNode = node;
@@ -83,15 +83,15 @@ std::vector<Journey> BFSAlgorithm::findPath(const std::string& start,
         }
     }
 
-    std::sort(journeys.begin(), journeys.end(),
-              [](const Journey& a, const Journey& b) {
-                  return a.getTotalDuration() < b.getTotalDuration();
-              });
+    // Сортируем используя метод sort
+    journeys.sort([](const Journey& a, const Journey& b) {
+        return a.getTotalDuration() < b.getTotalDuration();
+    });
 
     return journeys;
 }
 
-std::vector<Journey> FastestPathAlgorithm::findPath(const std::string& start, 
+List<Journey> FastestPathAlgorithm::findPath(const std::string& start,
                                                    const std::string& end,
                                                    const Time& departureTime) {
     BFSAlgorithm bfs(system, 2);
@@ -101,10 +101,12 @@ std::vector<Journey> FastestPathAlgorithm::findPath(const std::string& start,
         throw ContainerException("Маршрут не найден");
     }
 
-    return {journeys[0]}; // Возвращаем только самый быстрый
+    List<Journey> result;
+    result.push_back(journeys[0]); // Возвращаем только самый быстрый
+    return result;
 }
 
-std::vector<Journey> MinimalTransfersAlgorithm::findPath(const std::string& start, 
+List<Journey> MinimalTransfersAlgorithm::findPath(const std::string& start,
                                                          const std::string& end,
                                                          const Time& departureTime) {
     BFSAlgorithm bfs(system, 2);
@@ -119,7 +121,9 @@ std::vector<Journey> MinimalTransfersAlgorithm::findPath(const std::string& star
                                    return a.getTransferCount() < b.getTransferCount();
                                });
 
-    return {*it};
+    List<Journey> result;
+    result.push_back(*it);
+    return result;
 }
 
 void ArrivalTimeCalculationAlgorithm::calculateArrivalTimes(int tripId, double averageSpeed) {
@@ -156,11 +160,11 @@ void ArrivalTimeCalculationAlgorithm::calculateArrivalTimes(int tripId, double a
     }
 }
 
-std::vector<std::shared_ptr<Route>> RouteSearchAlgorithm::findRoutes(const std::string& stopA, 
+List<std::shared_ptr<Route>> RouteSearchAlgorithm::findRoutes(const std::string& stopA,
                                                                     const std::string& stopB) {
-    std::vector<std::shared_ptr<Route>> foundRoutes;
+    List<std::shared_ptr<Route>> foundRoutes;
     const auto& routes = system->getRoutes();
-    
+
     for (const auto& route : routes) {
         if (route->containsStop(stopA) &&
             route->containsStop(stopB) &&
@@ -170,4 +174,3 @@ std::vector<std::shared_ptr<Route>> RouteSearchAlgorithm::findRoutes(const std::
     }
     return foundRoutes;
 }
-

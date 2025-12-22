@@ -2,9 +2,9 @@
 #define DRIVER_SCHEDULE_H
 
 #include <unordered_map>
-#include <vector>
 #include <memory>
 #include <algorithm>
+#include "list.h"
 #include "driver.h"
 #include "trip.h"
 #include "time.h"
@@ -12,7 +12,7 @@
 class DriverSchedule {
 private:
     std::unordered_map<std::shared_ptr<Driver>,
-                       std::vector<std::shared_ptr<Trip>>> driverTrips;
+                       List<std::shared_ptr<Trip>>> driverTrips;
     const int MAX_WORKING_HOURS = 12 * 60; // 12 часов в минутах
 
 public:
@@ -27,11 +27,10 @@ public:
 
     bool checkWorkingHoursCompliance(std::shared_ptr<Driver> driver) const;
 
-    std::vector<std::shared_ptr<Trip>> getDriverTrips(
+    List<std::shared_ptr<Trip>> getDriverTrips(
         std::shared_ptr<Driver> driver) const;
 
     int getTotalWorkingMinutes(std::shared_ptr<Driver> driver) const;
 };
 
 #endif // DRIVER_SCHEDULE_H
-

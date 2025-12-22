@@ -12,7 +12,6 @@
 #include <iostream>
 #include <limits>
 #include <algorithm>
-#include <vector>
 #include <string>
 
 void displayGuestMenu() {
@@ -88,7 +87,7 @@ void adminAddRoute(TransportSystem& system) {
     try {
         int number;
         std::string vehicleType;
-        std::vector<std::string> stops;
+        List<std::string> stops;
         std::string stop;
 
         std::cout << "Введите номер маршрута: ";
@@ -137,8 +136,8 @@ void adminAddTrip(TransportSystem& system) {
 
         std::cout << "=== ДОСТУПНЫЕ ВОДИТЕЛИ (всего: " << drivers.size() << ") ===\n";
         for (size_t i = 0; i < drivers.size(); ++i) {
-            std::cout << (i+1) << ". " << drivers[i]->getFullName() 
-                      << " (Имя: " << drivers[i]->getFirstName() 
+            std::cout << (i+1) << ". " << drivers[i]->getFullName()
+                      << " (Имя: " << drivers[i]->getFirstName()
                       << ", Фамилия: " << drivers[i]->getLastName();
             if (!drivers[i]->getMiddleName().empty()) {
                 std::cout << ", Отчество: " << drivers[i]->getMiddleName();
@@ -188,7 +187,7 @@ void adminAddTrip(TransportSystem& system) {
         std::cin.ignore();
 
         if (driverChoice < 1 || driverChoice > static_cast<int>(drivers.size())) {
-            throw InputException("Неверный выбор водителя. Допустимые значения: 1-" + 
+            throw InputException("Неверный выбор водителя. Допустимые значения: 1-" +
                                 std::to_string(drivers.size()));
         }
 
@@ -205,7 +204,7 @@ void adminAddTrip(TransportSystem& system) {
             throw InputException("Неверный формат ввода для дня недели");
         }
         std::cin.ignore();
-        
+
         if (weekDay < 1 || weekDay > 7) {
             throw InputException("День недели должен быть от 1 до 7");
         }
@@ -296,71 +295,6 @@ void adminAddDriver(TransportSystem& system) {
     }
 }
 
-void initializeTestData(TransportSystem& system) {
-    system.addStopDirect(Stop(1, "Центральный вокзал"));
-    system.addStopDirect(Stop(2, "Площадь Ленина"));
-    system.addStopDirect(Stop(3, "Улица Гагарина"));
-    system.addStopDirect(Stop(4, "Парк Победы"));
-    system.addStopDirect(Stop(5, "Стадион"));
-    system.addStopDirect(Stop(6, "Больница"));
-    system.addStopDirect(Stop(7, "Университет"));
-
-    auto bus1 = std::make_shared<Bus>("МАЗ-203", "АН 8669-7");
-    auto bus2 = std::make_shared<Bus>("ПАЗ-3205", "ВС 1234-5");
-    auto tram1 = std::make_shared<Tram>("71-931", "ТР 5678-9");
-
-    system.addVehicleDirect(bus1);
-    system.addVehicleDirect(bus2);
-    system.addVehicleDirect(tram1);
-
-    auto driver1 = std::make_shared<Driver>("Иван", "Петров", "Сергеевич");
-    auto driver2 = std::make_shared<Driver>("Мария", "Сидорова", "Ивановна");
-    auto driver3 = std::make_shared<Driver>("Алексей", "Козлов");
-
-    system.addDriverDirect(driver1);
-    system.addDriverDirect(driver2);
-    system.addDriverDirect(driver3);
-
-    std::vector<std::string> route1Stops = {"Центральный вокзал", "Площадь Ленина", "Улица Гагарина", "Стадион"};
-    auto route1 = std::make_shared<Route>(101, "Автобус", route1Stops);
-
-    std::vector<std::string> route2Stops = {"Центральный вокзал", "Площадь Ленина", "Больница", "Университет"};
-    auto route2 = std::make_shared<Route>(202, "Автобус", route2Stops);
-
-    std::vector<std::string> route3Stops = {"Парк Победы", "Улица Гагарина", "Больница", "Университет"};
-    auto route3 = std::make_shared<Route>(5, "Трамвай", route3Stops);
-
-    system.addRouteDirect(route1);
-    system.addRouteDirect(route2);
-    system.addRouteDirect(route3);
-
-    try {
-        auto trip1 = std::make_shared<Trip>(1, route1, bus1, driver1, Time("08:00"), 1);
-        auto trip2 = std::make_shared<Trip>(2, route2, bus2, driver2, Time("09:00"), 1);
-        auto trip3 = std::make_shared<Trip>(3, route3, tram1, driver3, Time("10:00"), 1);
-        
-        auto trip4 = std::make_shared<Trip>(4, route1, bus1, driver1, Time("09:00"), 6);
-        auto trip5 = std::make_shared<Trip>(5, route2, bus2, driver2, Time("10:00"), 6);
-        auto trip6 = std::make_shared<Trip>(6, route1, bus1, driver1, Time("10:00"), 7);
-
-        system.addTripDirect(trip1);
-        system.addTripDirect(trip2);
-        system.addTripDirect(trip3);
-        system.addTripDirect(trip4);
-        system.addTripDirect(trip5);
-        system.addTripDirect(trip6);
-
-        system.calculateArrivalTimes(1, 30.0);
-        system.calculateArrivalTimes(2, 30.0);
-        system.calculateArrivalTimes(3, 25.0);
-        system.calculateArrivalTimes(4, 30.0);
-        system.calculateArrivalTimes(5, 30.0);
-        system.calculateArrivalTimes(6, 30.0);
-
-    } catch (const std::exception& e) {
-        std::cout << "Ошибка при создании тестовых рейсов: " << e.what() << "\n";
-    }
-}
 
 void searchRoutes(TransportSystem& system) {
     try {
@@ -445,8 +379,8 @@ void viewTransportScheduleGuest(TransportSystem& system) {
         }
 
         const auto& trips = system.getTrips();
-        std::vector<std::shared_ptr<Trip>> filteredTrips;
-        
+        List<std::shared_ptr<Trip>> filteredTrips;
+
         for (const auto& trip : trips) {
             if (trip->getRoute()->getVehicleType() == selectedType) {
                 filteredTrips.push_back(trip);
@@ -459,7 +393,7 @@ void viewTransportScheduleGuest(TransportSystem& system) {
         }
 
         std::string dayNames[] = {"", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
-        
+
         std::cout << "\n=== РАСПИСАНИЕ ТРАНСПОРТА: " << selectedType << " ===\n";
         std::cout << "========================================\n";
 
@@ -470,7 +404,7 @@ void viewTransportScheduleGuest(TransportSystem& system) {
             std::cout << "  Время отправления: " << trip->getStartTime() << "\n";
             std::cout << "  Транспорт: " << trip->getVehicle()->getInfo() << "\n";
             std::cout << "  Водитель: " << trip->getDriver()->getFullName() << "\n";
-            
+
             const auto& schedule = trip->getSchedule();
             if (!schedule.empty()) {
                 std::cout << "  Расписание:\n";
@@ -515,7 +449,7 @@ void viewTransportSchedule(TransportSystem& system) {
         }
 
         const auto& routes = system.getRoutes();
-        std::vector<std::shared_ptr<Route>> filteredRoutes;
+        List<std::shared_ptr<Route>> filteredRoutes;
         for (const auto& route : routes) {
             if (route->getVehicleType() == selectedType) {
                 filteredRoutes.push_back(route);
@@ -579,12 +513,10 @@ void viewTransportSchedule(TransportSystem& system) {
             throw InputException("Неверный выбор направления. Допустимые значения: 0, 1 или 2");
         }
 
-        std::vector<std::string> routeStops;
-        if (directionChoice == 1) {
-            routeStops = selectedRoute->getAllStops();
-        } else {
-            routeStops = selectedRoute->getAllStops();
-            std::reverse(routeStops.begin(), routeStops.end());
+        List<std::string> routeStops = selectedRoute->getAllStops();
+        if (directionChoice == 2) {
+            // Используем метод reverse
+            routeStops.reverse();
         }
 
         std::cout << "\n=== ОСТАНОВКИ МАРШРУТА ===\n";
@@ -641,7 +573,7 @@ void viewTransportSchedule(TransportSystem& system) {
         }
 
         const auto& trips = system.getTrips();
-        std::vector<std::pair<int, Time>> stopTimes;
+        List<std::pair<int, Time>> stopTimes;
 
         for (const auto& trip : trips) {
             if (trip->getRoute()->getNumber() == selectedRoute->getNumber() &&
@@ -653,7 +585,7 @@ void viewTransportSchedule(TransportSystem& system) {
                 } else {
                     dayMatches = (tripDay == weekDayChoice);
                 }
-                
+
                 if (dayMatches && trip->hasStop(selectedStop)) {
                     Time arrivalTime = trip->getArrivalTime(selectedStop);
                     stopTimes.push_back({trip->getTripId(), arrivalTime});
@@ -661,8 +593,8 @@ void viewTransportSchedule(TransportSystem& system) {
             }
         }
 
-        std::sort(stopTimes.begin(), stopTimes.end(),
-                  [](const auto& a, const auto& b) { return a.second < b.second; });
+        // Сортируем используя метод sort
+        stopTimes.sort([](const auto& a, const auto& b) { return a.second < b.second; });
 
         std::string dayNames[] = {"", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"};
         std::cout << "\n=== РАСПИСАНИЕ ДЛЯ ОСТАНОВКИ '" << selectedStop << "' ===\n";
@@ -834,7 +766,7 @@ void runAdminMode(TransportSystem& system) {
                         std::cout << "\nВ системе нет маршрутов для удаления.\n";
                         break;
                     }
-                    
+
                     std::cout << "\n=== ДОСТУПНЫЕ МАРШРУТЫ ДЛЯ УДАЛЕНИЯ ===\n";
                     for (size_t i = 0; i < routes.size(); ++i) {
                         std::cout << (i + 1) << ". Маршрут " << routes[i]->getNumber()
@@ -843,7 +775,7 @@ void runAdminMode(TransportSystem& system) {
                     }
                     std::cout << "==========================================\n";
                     std::cout << "Выберите номер маршрута для удаления: ";
-                    
+
                     int routeChoice;
                     if (!(std::cin >> routeChoice)) {
                         std::cin.clear();
@@ -851,11 +783,11 @@ void runAdminMode(TransportSystem& system) {
                         throw InputException("Неверный формат ввода");
                     }
                     std::cin.ignore();
-                    
+
                     if (routeChoice < 1 || routeChoice > static_cast<int>(routes.size())) {
                         throw InputException("Неверный выбор маршрута. Допустимые значения: 1-" + std::to_string(routes.size()));
                     }
-                    
+
                     int routeNumber = routes[routeChoice - 1]->getNumber();
                     system.removeRoute(routeNumber);
                     break;
@@ -866,7 +798,7 @@ void runAdminMode(TransportSystem& system) {
                         std::cout << "\nВ системе нет рейсов для удаления.\n";
                         break;
                     }
-                    
+
                     std::cout << "\n=== ДОСТУПНЫЕ РЕЙСЫ ДЛЯ УДАЛЕНИЯ ===\n";
                     for (size_t i = 0; i < trips.size(); ++i) {
                         std::cout << (i + 1) << ". Рейс " << trips[i]->getTripId()
@@ -877,7 +809,7 @@ void runAdminMode(TransportSystem& system) {
                     }
                     std::cout << "=====================================\n";
                     std::cout << "Выберите номер рейса для удаления: ";
-                    
+
                     int tripChoice;
                     if (!(std::cin >> tripChoice)) {
                         std::cin.clear();
@@ -885,11 +817,11 @@ void runAdminMode(TransportSystem& system) {
                         throw InputException("Неверный формат ввода");
                     }
                     std::cin.ignore();
-                    
+
                     if (tripChoice < 1 || tripChoice > static_cast<int>(trips.size())) {
                         throw InputException("Неверный выбор рейса. Допустимые значения: 1-" + std::to_string(trips.size()));
                     }
-                    
+
                     int tripId = trips[tripChoice - 1]->getTripId();
                     system.removeTrip(tripId);
                     break;
@@ -912,10 +844,10 @@ void runAdminMode(TransportSystem& system) {
                     }
                     break;
                 }
-                case 15: 
+                case 15:
                     system.saveData();
                     std::cout << "Данные сохранены. Выход из административного режима.\n";
-                    running = false; 
+                    running = false;
                     break;
                 default: std::cout << "Неверный выбор.\n";
             }
@@ -932,4 +864,3 @@ void runAdminMode(TransportSystem& system) {
         }
     }
 }
-

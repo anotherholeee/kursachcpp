@@ -1,11 +1,11 @@
 #ifndef ROUTE_H
 #define ROUTE_H
 
-#include <vector>
 #include <string>
 #include <set>
 #include <memory>
 #include <algorithm>
+#include "list.h"
 #include "exceptions.h"
 
 class Route {
@@ -14,11 +14,11 @@ private:
     std::string vehicleType;
     std::string startStop;
     std::string endStop;
-    std::vector<std::string> allStops;
+    List<std::string> allStops;
     std::set<int> weekDays; // Дни недели: 1-понедельник, 2-вторник, ..., 7-воскресенье
 
 public:
-    Route(int num, const std::string& vType, const std::vector<std::string>& stops, 
+    Route(int num, const std::string& vType, const List<std::string>& stops,
           const std::set<int>& days = {1,2,3,4,5,6,7});
 
     bool containsStop(const std::string& stop) const;
@@ -29,7 +29,7 @@ public:
     std::string getVehicleType() const;
     std::string getStartStop() const;
     std::string getEndStop() const;
-    const std::vector<std::string>& getAllStops() const;
+    const List<std::string>& getAllStops() const;
     const std::set<int>& getWeekDays() const;
     bool operatesOnDay(int day) const;
 
@@ -38,4 +38,3 @@ public:
 };
 
 #endif // ROUTE_H
-

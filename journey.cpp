@@ -1,7 +1,7 @@
 #include "journey.h"
 
-Journey::Journey(const std::vector<std::shared_ptr<Trip>>& tripList,
-            const std::vector<std::string>& transfers,
+Journey::Journey(const List<std::shared_ptr<Trip>>& tripList,
+            const List<std::string>& transfers,
             Time start, Time end)
     : trips(tripList), transferPoints(transfers),
       startTime(start), endTime(end),
@@ -23,11 +23,11 @@ Time Journey::getEndTime() const {
     return endTime;
 }
 
-const std::vector<std::shared_ptr<Trip>>& Journey::getTrips() const {
+const List<std::shared_ptr<Trip>>& Journey::getTrips() const {
     return trips;
 }
 
-const std::vector<std::string>& Journey::getTransferPoints() const {
+const List<std::string>& Journey::getTransferPoints() const {
     return transferPoints;
 }
 
@@ -48,4 +48,3 @@ void Journey::display() const {
         }
     }
 }
-

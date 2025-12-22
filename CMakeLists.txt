@@ -45,6 +45,7 @@ set(SOURCES
         command.cpp
         commands.cpp
         transport_system.cpp
+        ui.cpp
 )
 
 # Создание исполняемого файла
@@ -74,4 +75,3 @@ endif()
 set_target_properties(kursovayacpp_qt PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
-

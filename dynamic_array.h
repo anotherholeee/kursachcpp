@@ -162,4 +162,3 @@ public:
 #include "dynamic_array.tpp"
 
 #endif // DYNAMIC_ARRAY_H
-
