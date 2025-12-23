@@ -5,19 +5,35 @@
 #include "trolleybus.h"
 #include <sstream>
 
+/**
+ * @brief Конструктор рейса
+ * @param id Уникальный идентификатор рейса
+ * @param r Маршрут рейса
+ * @param v Транспортное средство
+ * @param d Водитель
+ * @param start Время отправления
+ * @param day День недели (1-понедельник, 7-воскресенье)
+ * 
+ * Создает рейс с заданными параметрами. Расписание прибытия на остановки
+ * устанавливается отдельно через setArrivalTime.
+ */
 Trip::Trip(int id, std::shared_ptr<Route> r, std::shared_ptr<Vehicle> v,
          std::shared_ptr<Driver> d, const Time& start, int day)
     : tripId(id), route(std::move(r)), vehicle(std::move(v)),
       driver(std::move(d)), startTime(start), weekDay(day) {
+    // Проверка корректности дня недели
     if (day < 1 || day > 7) {
         throw InputException("День недели должен быть от 1 до 7");
     }
 }
 
+// Устанавливает время прибытия на указанную остановку
 void Trip::setArrivalTime(const std::string& stop, const Time& time) {
     schedule[stop] = time;
 }
 
+// Возвращает время прибытия на указанную остановку
+// Выбрасывает исключение, если остановка не найдена в расписании
 Time Trip::getArrivalTime(const std::string& stop) const {
     auto it = schedule.find(stop);
     if (it != schedule.end()) {
@@ -26,38 +42,47 @@ Time Trip::getArrivalTime(const std::string& stop) const {
     throw ContainerException("Остановка не найдена в расписании рейса");
 }
 
+// Проверяет, есть ли указанная остановка в расписании рейса
 bool Trip::hasStop(const std::string& stop) const {
     return schedule.find(stop) != schedule.end();
 }
 
+// Возвращает уникальный идентификатор рейса
 int Trip::getTripId() const {
     return tripId;
 }
 
+// Возвращает маршрут рейса
 std::shared_ptr<Route> Trip::getRoute() const {
     return route;
 }
 
+// Возвращает транспортное средство, выполняющее рейс
 std::shared_ptr<Vehicle> Trip::getVehicle() const {
     return vehicle;
 }
 
+// Возвращает водителя, выполняющего рейс
 std::shared_ptr<Driver> Trip::getDriver() const {
     return driver;
 }
 
+// Возвращает время отправления рейса
 Time Trip::getStartTime() const {
     return startTime;
 }
 
+// Возвращает полное расписание рейса (остановка -> время прибытия)
 const std::map<std::string, Time>& Trip::getSchedule() const {
     return schedule;
 }
 
+// Возвращает день недели, когда выполняется рейс (1-7)
 int Trip::getWeekDay() const {
     return weekDay;
 }
 
+// Возвращает примерное время окончания рейса (время отправления + 60 минут)
 Time Trip::getEstimatedEndTime() const {
     return startTime + 60;
 }

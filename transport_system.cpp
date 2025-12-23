@@ -2,19 +2,31 @@
 #include <iostream>
 #include <algorithm>
 
+/**
+ * @brief Конструктор транспортной системы
+ * 
+ * Инициализирует систему транспорта:
+ * - Создает планировщик поездок
+ * - Создает менеджер данных
+ * - Инициализирует алгоритмы расчета времени и поиска маршрутов
+ * - Устанавливает учетные данные администраторов по умолчанию
+ */
 TransportSystem::TransportSystem() 
     : journeyPlanner(this), 
       dataManager(),
       arrivalTimeAlgorithm(std::make_unique<ArrivalTimeCalculationAlgorithm>(this)),
       routeSearchAlgorithm(std::make_unique<RouteSearchAlgorithm>(this)) {
+    // Учетные данные администраторов по умолчанию
     adminCredentials["admin"] = "admin123";
     adminCredentials["manager"] = "manager123";
 }
 
+// Проверяет, можно ли отменить последнее действие
 bool TransportSystem::canUndo() const {
     return commandHistory.canUndo();
 }
 
+// Отменяет последнее выполненное действие
 void TransportSystem::undo() {
     if (!canUndo()) {
         throw ContainerException("Нет действий для отмены");
@@ -23,10 +35,12 @@ void TransportSystem::undo() {
     std::cout << "Действие отменено.\n";
 }
 
+// Проверяет, можно ли повторить отмененное действие
 bool TransportSystem::canRedo() const {
     return commandHistory.canRedo();
 }
 
+// Повторяет последнее отмененное действие
 void TransportSystem::redo() {
     if (!canRedo()) {
         throw ContainerException("Нет действий для повтора");
@@ -43,11 +57,13 @@ std::string TransportSystem::getNextCommandDescription() const {
     return commandHistory.getNextCommandDescription();
 }
 
+// Проверяет учетные данные администратора
 bool TransportSystem::authenticateAdmin(const std::string& username, const std::string& password) {
     auto it = adminCredentials.find(username);
     return it != adminCredentials.end() && it->second == password;
 }
 
+// Добавляет нового администратора в систему
 void TransportSystem::addAdmin(const std::string& username, const std::string& password) {
     adminCredentials[username] = password;
 }
@@ -68,32 +84,54 @@ void TransportSystem::loadData() {
     dataManager.loadAllData(*this);
 }
 
+/**
+ * @brief Поиск маршрутов между двумя остановками
+ * @param stopA Начальная остановка
+ * @param stopB Конечная остановка
+ * @return Список маршрутов, проходящих через обе остановки
+ * 
+ * Использует алгоритм поиска маршрутов для нахождения всех маршрутов,
+ * которые проходят через обе остановки и stopA идет раньше stopB.
+ */
 List<std::shared_ptr<Route>> TransportSystem::findRoutes(const std::string& stopA, const std::string& stopB) {
     // Используем алгоритм поиска маршрутов
     return routeSearchAlgorithm->findRoutes(stopA, stopB);
 }
 
+/**
+ * @brief Получение расписания остановки в указанном временном интервале
+ * @param stopId Идентификатор остановки
+ * @param startTime Начало временного интервала
+ * @param endTime Конец временного интервала
+ * 
+ * Выводит в консоль все рейсы, которые прибывают на указанную остановку
+ * в заданном временном интервале, отсортированные по времени прибытия.
+ */
 void TransportSystem::getStopTimetable(int stopId, const Time& startTime, const Time& endTime) {
+    // Находим название остановки по ID
     auto it = stopIdToName.find(stopId);
     if (it == stopIdToName.end()) {
         throw ContainerException("Остановка с ID " + std::to_string(stopId) + " не найдена");
     }
     const std::string& stopName = it->second;
 
+    // Собираем рейсы, прибывающие на остановку в указанном интервале
     List<std::pair<int, Time>> relevantTrips;
 
     for (const auto& trip : trips) {
         if (trip->hasStop(stopName)) {
             Time arrivalTime = trip->getArrivalTime(stopName);
+            // Проверяем, попадает ли время прибытия в заданный интервал
             if (startTime <= arrivalTime && arrivalTime <= endTime) {
                 relevantTrips.push_back({trip->getRoute()->getNumber(), arrivalTime});
             }
         }
     }
 
-    // Сортируем используя метод sort
+    // Сортируем рейсы по времени прибытия
     relevantTrips.sort([](const auto& a, const auto& b) { return a.second < b.second; });
 
+    // Выводим расписание
     std::cout << "\nРасписание для остановки '" << stopName << "' с "
               << startTime << " по " << endTime << ":\n";
     if (relevantTrips.empty()) {
@@ -128,6 +166,14 @@ void TransportSystem::getStopTimetableAll(const std::string& stopName) {
     }
 }
 
+/**
+ * @brief Расчет времени прибытия на остановки для рейса
+ * @param tripId Идентификатор рейса
+ * @param averageSpeed Средняя скорость движения в км/ч
+ * 
+ * Делегирует расчет времени прибытия алгоритму расчета времени.
+ * Время рассчитывается на основе средней скорости и расстояния между остановками.
+ */
 void TransportSystem::calculateArrivalTimes(int tripId, double averageSpeed) {
     // Используем алгоритм расчета времени прибытия
     arrivalTimeAlgorithm->calculateArrivalTimes(tripId, averageSpeed);
@@ -141,22 +187,41 @@ RouteSearchAlgorithm* TransportSystem::getRouteSearchAlgorithm() const {
     return routeSearchAlgorithm.get();
 }
 
+/**
+ * @brief Добавление маршрута в систему
+ * @param route Указатель на маршрут для добавления
+ * 
+ * Проверяет уникальность номера маршрута и добавляет его через систему команд
+ * (для возможности отмены операции).
+ */
 void TransportSystem::addRoute(std::shared_ptr<Route> route) {
+    // Проверяем, что маршрут с таким номером еще не существует
     for (const auto& existingRoute : routes) {
         if (existingRoute->getNumber() == route->getNumber()) {
             throw ContainerException("Маршрут с номером " + std::to_string(route->getNumber()) + " уже существует");
         }
     }
+    // Добавляем через систему команд (для поддержки undo/redo)
     commandHistory.executeCommand(std::make_unique<AddRouteCommand>(this, route));
 }
 
+/**
+ * @brief Добавление рейса в систему
+ * @param trip Указатель на рейс для добавления
+ * 
+ * Проверяет уникальность ID рейса. Если водитель или транспортное средство
+ * рейса еще не добавлены в систему, добавляет их автоматически.
+ * Затем добавляет рейс через систему команд.
+ */
 void TransportSystem::addTrip(std::shared_ptr<Trip> trip) {
+    // Проверяем уникальность ID рейса
     for (const auto& existingTrip : trips) {
         if (existingTrip->getTripId() == trip->getTripId()) {
             throw ContainerException("Рейс с ID " + std::to_string(trip->getTripId()) + " уже существует");
         }
     }
 
+    // Проверяем и добавляем водителя, если его еще нет в системе
     bool driverExists = false;
     const auto& tripDriver = trip->getDriver();
     for (const auto& existingDriver : drivers) {
@@ -171,6 +236,7 @@ void TransportSystem::addTrip(std::shared_ptr<Trip> trip) {
         addDriver(trip->getDriver());
     }
 
+    // Проверяем и добавляем транспортное средство, если его еще нет в системе
     bool vehicleExists = false;
     const auto& tripVehicle = trip->getVehicle();
     for (const auto& existingVehicle : vehicles) {
@@ -183,9 +249,11 @@ void TransportSystem::addTrip(std::shared_ptr<Trip> trip) {
         addVehicle(trip->getVehicle());
     }
 
+    // Добавляем рейс через систему команд
     commandHistory.executeCommand(std::make_unique<AddTripCommand>(this, trip));
 }
 
+// Добавляет транспортное средство в систему (с проверкой уникальности номера)
 void TransportSystem::addVehicle(std::shared_ptr<Vehicle> vehicle) {
     for (const auto& existingVehicle : vehicles) {
         if (existingVehicle->getLicensePlate() == vehicle->getLicensePlate()) {
@@ -195,10 +263,12 @@ void TransportSystem::addVehicle(std::shared_ptr<Vehicle> vehicle) {
     commandHistory.executeCommand(std::make_unique<AddVehicleCommand>(this, vehicle));
 }
 
+// Добавляет водителя в систему через систему команд
 void TransportSystem::addDriver(std::shared_ptr<Driver> driver) {
     commandHistory.executeCommand(std::make_unique<AddDriverCommand>(this, driver));
 }
 
+// Добавляет остановку в систему (с проверкой уникальности ID)
 void TransportSystem::addStop(const Stop& stop) {
     for (const auto& existingStop : stops) {
         if (existingStop.getId() == stop.getId()) {
@@ -208,6 +278,7 @@ void TransportSystem::addStop(const Stop& stop) {
     commandHistory.executeCommand(std::make_unique<AddStopCommand>(this, stop));
 }
 
+// Удаляет маршрут из системы (с проверкой существования)
 void TransportSystem::removeRoute(int routeNumber) {
     auto it = std::find_if(routes.begin(), routes.end(),
                           [routeNumber](const auto& r) { return r->getNumber() == routeNumber; });
@@ -218,6 +289,7 @@ void TransportSystem::removeRoute(int routeNumber) {
     std::cout << "Маршрут " << routeNumber << " удален.\n";
 }
 
+// Удаляет рейс из системы (с проверкой существования)
 void TransportSystem::removeTrip(int tripId) {
     auto it = std::find_if(trips.begin(), trips.end(),
                           [tripId](const auto& t) { return t->getTripId() == tripId; });
@@ -228,6 +300,7 @@ void TransportSystem::removeTrip(int tripId) {
     std::cout << "Рейс " << tripId << " удален.\n";
 }
 
+// Выводит в консоль информацию о всех маршрутах
 void TransportSystem::displayAllRoutes() const {
     std::cout << "\n=== ВСЕ МАРШРУТЫ ===\n";
     for (const auto& route : routes) {
@@ -236,6 +309,7 @@ void TransportSystem::displayAllRoutes() const {
     }
 }
 
+// Выводит в консоль информацию о всех рейсах
 void TransportSystem::displayAllTrips() const {
     std::cout << "\n=== ВСЕ РЕЙСЫ ===\n";
     for (const auto& trip : trips) {
@@ -246,6 +320,7 @@ void TransportSystem::displayAllTrips() const {
     }
 }
 
+// Выводит в консоль информацию о всех транспортных средствах
 void TransportSystem::displayAllVehicles() const {
     std::cout << "\n=== ВСЕ ТРАНСПОРТНЫЕ СРЕДСТВА ===\n";
     for (const auto& vehicle : vehicles) {
@@ -253,6 +328,7 @@ void TransportSystem::displayAllVehicles() const {
     }
 }
 
+// Выводит в консоль информацию о всех остановках
 void TransportSystem::displayAllStops() const {
     std::cout << "\n=== ВСЕ ОСТАНОВКИ ===\n";
     for (const auto& stop : stops) {
@@ -288,6 +364,7 @@ DriverSchedule& TransportSystem::getDriverSchedule() {
     return driverSchedule;
 }
 
+// Находит водителя по ФИО
 std::shared_ptr<Driver> TransportSystem::findDriverByName(const std::string& firstName,
                                         const std::string& lastName,
                                         const std::string& middleName) const {
@@ -298,27 +375,30 @@ std::shared_ptr<Driver> TransportSystem::findDriverByName(const std::string& fir
             return driver;
         }
     }
-    return nullptr;
+    return nullptr;  // Водитель не найден
 }
 
+// Находит транспортное средство по государственному номеру
 std::shared_ptr<Vehicle> TransportSystem::findVehicleByLicensePlate(const std::string& licensePlate) const {
     for (const auto& vehicle : vehicles) {
         if (vehicle->getLicensePlate() == licensePlate) {
             return vehicle;
         }
     }
-    return nullptr;
+    return nullptr;  // Транспортное средство не найдено
 }
 
+// Находит маршрут по номеру
 std::shared_ptr<Route> TransportSystem::findRouteByNumber(int number) const {
     for (const auto& route : routes) {
         if (route->getNumber() == number) {
             return route;
         }
     }
-    return nullptr;
+    return nullptr;  // Маршрут не найден
 }
 
+// Получает список всех рейсов, проходящих через указанную остановку
 List<std::shared_ptr<Trip>> TransportSystem::getTripsThroughStop(const std::string& stopName) const {
     List<std::shared_ptr<Trip>> result;
     for (const auto& trip : trips) {

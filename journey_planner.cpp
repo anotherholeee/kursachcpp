@@ -5,12 +5,32 @@
 #include <set>
 #include "exceptions.h"
 
+/**
+ * @brief Конструктор планировщика поездок
+ * @param sys Указатель на транспортную систему
+ * 
+ * Инициализирует планировщик и создает алгоритмы поиска маршрутов:
+ * - BFS для поиска всех маршрутов с пересадками
+ * - FastestPath для поиска самого быстрого маршрута
+ * - MinimalTransfers для поиска маршрута с минимальными пересадками
+ */
 JourneyPlanner::JourneyPlanner(TransportSystem* sys) 
     : system(sys),
       bfsAlgorithm(std::make_unique<BFSAlgorithm>(sys, 2)),
       fastestAlgorithm(std::make_unique<FastestPathAlgorithm>(sys)),
       minimalTransfersAlgorithm(std::make_unique<MinimalTransfersAlgorithm>(sys)) {}
 
+/**
+ * @brief Поиск маршрутов с пересадками с заданным временем отправления
+ * @param startStop Начальная остановка
+ * @param endStop Конечная остановка
+ * @param departureTime Время отправления
+ * @param maxTransfers Максимальное количество пересадок
+ * @return Список найденных поездок
+ * 
+ * Использует алгоритм BFS для поиска всех возможных маршрутов
+ * с учетом ограничения на количество пересадок.
+ */
 List<Journey> JourneyPlanner::findJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,
@@ -22,6 +42,17 @@ List<Journey> JourneyPlanner::findJourneysWithTransfers(
     return bfs.findPath(startStop, endStop, departureTime);
 }
 
+/**
+ * @brief Поиск всех возможных маршрутов между остановками (без привязки ко времени)
+ * @param startStop Начальная остановка
+ * @param endStop Конечная остановка
+ * @param maxTransfers Максимальное количество пересадок
+ * @return Список всех найденных поездок, отсортированных по времени отправления и длительности
+ * 
+ * Находит все возможные маршруты между остановками, начиная с любого рейса,
+ * проходящего через начальную остановку. Использует BFS с ограничением итераций
+ * для предотвращения зависания.
+ */
 List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,
@@ -29,15 +60,17 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
     List<Journey> journeys;
 
+    // Узел поиска: содержит текущую остановку, время, пройденный путь и пересадки
     struct SearchNode {
-        std::string currentStop;
-        Time currentTime;
-        Time startTime;
-        List<std::shared_ptr<Trip>> pathTrips;
-        List<std::string> transferPoints;
-        int transfers;
+        std::string currentStop;              // Текущая остановка
+        Time currentTime;                     // Текущее время
+        Time startTime;                       // Время начала поездки
+        List<std::shared_ptr<Trip>> pathTrips; // Рейсы, использованные в пути
+        List<std::string> transferPoints;     // Остановки, где были пересадки
+        int transfers;                        // Количество пересадок
     };
 
+    // Получаем все рейсы, проходящие через начальную остановку
     auto initialTrips = system->getTripsThroughStop(startStop);
 
     // Фильтруем только рейсы с рассчитанным временем прибытия
@@ -48,7 +81,7 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
         }
     }
 
-    // Сортируем используя метод sort
+    // Сортируем рейсы по времени прибытия на начальную остановку
     validInitialTrips.sort([&startStop](const auto& a, const auto& b) {
         return a->getArrivalTime(startStop) < b->getArrivalTime(startStop);
     });
@@ -61,33 +94,39 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
     const int MAX_ITERATIONS = 10000;
     int iterations = 0;
 
+    // Добавляем в очередь начальные узлы для каждого рейса через начальную остановку
     for (const auto& trip : validInitialTrips) {
         Time arrivalAtStart = trip->getArrivalTime(startStop);
         q.push({startStop, arrivalAtStart, arrivalAtStart, {}, {}, 0});
     }
 
+    // Основной цикл поиска в ширину
     while (!q.empty() && iterations < MAX_ITERATIONS) {
         iterations++;
         auto node = q.front();
         q.pop();
 
+        // Если достигли конечной остановки - сохраняем найденный маршрут
         if (node.currentStop == endStop) {
             journeys.push_back(Journey(node.pathTrips, node.transferPoints,
                                  node.startTime, node.currentTime));
             continue;
         }
 
+        // Пропускаем узлы с превышением лимита пересадок
         if (node.transfers >= maxTransfers) {
             continue;
         }
 
         // Проверяем, не посещали ли мы уже эту остановку с таким же количеством пересадок
+        // Это предотвращает бесконечные циклы
         auto visitKey = std::make_pair(node.currentStop, node.transfers);
         if (visited.find(visitKey) != visited.end()) {
             continue;
         }
         visited.insert(visitKey);
 
+        // Получаем все рейсы, проходящие через текущую остановку
         auto trips = system->getTripsThroughStop(node.currentStop);
 
         for (const auto& trip : trips) {
@@ -98,6 +137,7 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
             Time arrivalAtStop = trip->getArrivalTime(node.currentStop);
 
+            // Для промежуточных остановок пропускаем рейсы, которые уже прошли
             if (node.currentStop != startStop && arrivalAtStop < node.currentTime) {
                 continue;
             }
@@ -107,11 +147,13 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
                 continue;
             }
 
+            // Получаем список остановок маршрута и позицию текущей остановки
             const auto& routeStops = trip->getRoute()->getAllStops();
             int currentPos = trip->getRoute()->getStopPosition(node.currentStop);
 
-            if (currentPos == -1) continue;
+            if (currentPos == -1) continue;  // Остановка не найдена в маршруте
 
+            // Проверяем все последующие остановки на этом маршруте
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
 
@@ -122,11 +164,13 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
 
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
+                // Создаем новый узел для следующей остановки
                 SearchNode nextNode = node;
                 nextNode.currentStop = nextStop;
                 nextNode.currentTime = arrivalAtNext;
                 nextNode.pathTrips.push_back(trip);
 
+                // Для первого рейса устанавливаем время начала поездки
                 if (nextNode.pathTrips.size() == 1) {
                     nextNode.startTime = arrivalAtStop;
                 }
@@ -137,12 +181,13 @@ List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
                     nextNode.transfers++;
                 }
 
+                // Добавляем новый узел в очередь для дальнейшего поиска
                 q.push(nextNode);
             }
         }
     }
 
-    // Сортируем используя метод sort
+    // Сортируем найденные маршруты: сначала по времени отправления, затем по длительности
     journeys.sort([](const Journey& a, const Journey& b) {
         if (a.getStartTime() != b.getStartTime()) {
             return a.getStartTime() < b.getStartTime();

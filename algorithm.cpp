@@ -4,36 +4,58 @@
 #include <queue>
 #include <algorithm>
 
+/**
+ * @brief Поиск маршрутов с использованием алгоритма BFS (поиск в ширину)
+ * @param start Начальная остановка
+ * @param end Конечная остановка
+ * @param departureTime Время отправления
+ * @return Список найденных поездок, отсортированных по времени в пути
+ * 
+ * Алгоритм использует поиск в ширину для нахождения всех возможных маршрутов
+ * между остановками с учетом ограничения на количество пересадок.
+ * 
+ * Алгоритм:
+ * 1. Начинаем с начальной остановки в заданное время
+ * 2. Для каждой остановки находим все рейсы, проходящие через неё
+ * 3. Для каждого рейса проверяем все последующие остановки
+ * 4. Если достигли конечной остановки - сохраняем маршрут
+ * 5. Если количество пересадок не превышает максимум - продолжаем поиск
+ */
 List<Journey> BFSAlgorithm::findPath(const std::string& start,
                                            const std::string& end,
                                            const Time& departureTime) {
     List<Journey> journeys;
 
+    // Узел поиска: содержит текущую остановку, время, пройденный путь и пересадки
     struct SearchNode {
-        std::string currentStop;
-        Time currentTime;
-        List<std::shared_ptr<Trip>> pathTrips;
-        List<std::string> transferPoints;
-        int transfers;
+        std::string currentStop;              // Текущая остановка
+        Time currentTime;                     // Текущее время
+        List<std::shared_ptr<Trip>> pathTrips; // Рейсы, использованные в пути
+        List<std::string> transferPoints;     // Остановки, где были пересадки
+        int transfers;                        // Количество пересадок
     };
 
     std::queue<SearchNode> q;
+    // Начинаем поиск с начальной остановки
     q.push({start, departureTime, {}, {}, 0});
 
     while (!q.empty()) {
         auto node = q.front();
         q.pop();
 
+        // Если достигли конечной остановки - сохраняем найденный маршрут
         if (node.currentStop == end) {
             journeys.push_back(Journey(node.pathTrips, node.transferPoints,
                                  departureTime, node.currentTime));
             continue;
         }
 
+        // Пропускаем узлы с превышением лимита пересадок
         if (node.transfers >= maxTransfers) {
             continue;
         }
 
+        // Получаем все рейсы, проходящие через текущую остановку
         auto trips = system->getTripsThroughStop(node.currentStop);
 
         for (const auto& trip : trips) {
@@ -44,19 +66,23 @@ List<Journey> BFSAlgorithm::findPath(const std::string& start,
 
             Time arrivalAtStop = trip->getArrivalTime(node.currentStop);
 
+            // Пропускаем рейсы, которые уже прошли (время прибытия раньше текущего)
             if (arrivalAtStop < node.currentTime) {
                 continue;
             }
 
+            // Пропускаем, если это тот же рейс, что и предыдущий (избегаем циклов)
             if (!node.pathTrips.empty() && node.pathTrips.back() == trip) {
                 continue;
             }
 
+            // Получаем список остановок маршрута и позицию текущей остановки
             const auto& routeStops = trip->getRoute()->getAllStops();
             int currentPos = trip->getRoute()->getStopPosition(node.currentStop);
 
-            if (currentPos == -1) continue;
+            if (currentPos == -1) continue;  // Остановка не найдена в маршруте
 
+            // Проверяем все последующие остановки на этом маршруте
             for (int i = currentPos + 1; i < routeStops.size(); ++i) {
                 std::string nextStop = routeStops[i];
 
@@ -67,6 +93,7 @@ List<Journey> BFSAlgorithm::findPath(const std::string& start,
 
                 Time arrivalAtNext = trip->getArrivalTime(nextStop);
 
+                // Создаем новый узел для следующей остановки
                 SearchNode nextNode = node;
                 nextNode.currentStop = nextStop;
                 nextNode.currentTime = arrivalAtNext;
@@ -78,12 +105,13 @@ List<Journey> BFSAlgorithm::findPath(const std::string& start,
                     nextNode.transfers++;
                 }
 
+                // Добавляем новый узел в очередь для дальнейшего поиска
                 q.push(nextNode);
             }
         }
     }
 
-    // Сортируем используя метод sort
+    // Сортируем найденные маршруты по времени в пути (от быстрых к медленным)
     journeys.sort([](const Journey& a, const Journey& b) {
         return a.getTotalDuration() < b.getTotalDuration();
     });
@@ -91,6 +119,16 @@ List<Journey> BFSAlgorithm::findPath(const std::string& start,
     return journeys;
 }
 
+/**
+ * @brief Поиск самого быстрого маршрута
+ * @param start Начальная остановка
+ * @param end Конечная остановка
+ * @param departureTime Время отправления
+ * @return Список с одним элементом - самым быстрым маршрутом
+ * 
+ * Использует BFS для поиска всех маршрутов, затем выбирает самый быстрый
+ * (с минимальным временем в пути).
+ */
 List<Journey> FastestPathAlgorithm::findPath(const std::string& start,
                                                    const std::string& end,
                                                    const Time& departureTime) {
@@ -102,10 +140,21 @@ List<Journey> FastestPathAlgorithm::findPath(const std::string& start,
     }
 
     List<Journey> result;
-    result.push_back(journeys[0]); // Возвращаем только самый быстрый
+    // BFS уже отсортировал маршруты по времени, берем первый (самый быстрый)
+    result.push_back(journeys[0]);
     return result;
 }
 
+/**
+ * @brief Поиск маршрута с минимальным количеством пересадок
+ * @param start Начальная остановка
+ * @param end Конечная остановка
+ * @param departureTime Время отправления
+ * @return Список с одним элементом - маршрутом с минимальными пересадками
+ * 
+ * Использует BFS для поиска всех маршрутов, затем выбирает маршрут
+ * с наименьшим количеством пересадок.
+ */
 List<Journey> MinimalTransfersAlgorithm::findPath(const std::string& start,
                                                          const std::string& end,
                                                          const Time& departureTime) {
@@ -116,6 +165,7 @@ List<Journey> MinimalTransfersAlgorithm::findPath(const std::string& start,
         throw ContainerException("Маршрут не найден");
     }
 
+    // Находим маршрут с минимальным количеством пересадок
     auto it = std::min_element(journeys.begin(), journeys.end(),
                                [](const Journey& a, const Journey& b) {
                                    return a.getTransferCount() < b.getTransferCount();
@@ -126,11 +176,31 @@ List<Journey> MinimalTransfersAlgorithm::findPath(const std::string& start,
     return result;
 }
 
+/**
+ * @brief Расчет времени прибытия на остановки для рейса
+ * @param tripId Идентификатор рейса
+ * @param averageSpeed Средняя скорость движения в км/ч
+ * 
+ * Вычисляет время прибытия на каждую остановку маршрута на основе:
+ * - Времени отправления рейса
+ * - Средней скорости движения
+ * - Расстояния между остановками (1.5 км)
+ * - Времени стоянки на остановке (1 минута)
+ * 
+ * Алгоритм:
+ * 1. Время прибытия на первую остановку = время отправления
+ * 2. Для каждой последующей остановки:
+ *    - Время в пути = расстояние / скорость (переводим в минуты)
+ *    - Время прибытия = предыдущее время + время в пути
+ *    - Время отправления = время прибытия + время стоянки
+ */
 void ArrivalTimeCalculationAlgorithm::calculateArrivalTimes(int tripId, double averageSpeed) {
+    // Проверка корректности скорости
     if (averageSpeed <= 0) {
         throw InputException("Средняя скорость должна быть положительной");
     }
 
+    // Поиск рейса по ID
     const auto& trips = system->getTrips();
     auto tripIt = std::find_if(trips.begin(), trips.end(),
                                [tripId](const auto& t) { return t->getTripId() == tripId; });
@@ -146,26 +216,45 @@ void ArrivalTimeCalculationAlgorithm::calculateArrivalTimes(int tripId, double a
         throw ContainerException("Маршрут не содержит остановок");
     }
 
+    // Время прибытия на первую остановку = время отправления
     Time currentTime = trip->getStartTime();
     trip->setArrivalTime(stopsList[0], currentTime);
 
-    const double distanceBetweenStops = 1.5; // км
-    const int stopTime = 1; // минута
+    // Константы для расчета
+    const double distanceBetweenStops = 1.5; // Расстояние между остановками в км
+    const int stopTime = 1;                   // Время стоянки на остановке в минутах
 
+    // Рассчитываем время прибытия для каждой последующей остановки
     for (size_t i = 1; i < stopsList.size(); ++i) {
+        // Время в пути в минутах: (расстояние / скорость) * 60
         double travelTimeMinutes = (distanceBetweenStops / averageSpeed) * 60;
+        // Время прибытия = текущее время + время в пути (округляем)
         Time arrivalTime = currentTime + static_cast<int>(travelTimeMinutes + 0.5);
         trip->setArrivalTime(stopsList[i], arrivalTime);
+        // Время отправления со следующей остановки = время прибытия + время стоянки
         currentTime = arrivalTime + stopTime;
     }
 }
 
+/**
+ * @brief Поиск маршрутов между двумя остановками
+ * @param stopA Начальная остановка
+ * @param stopB Конечная остановка
+ * @return Список маршрутов, которые проходят через обе остановки
+ *         и stopA идет раньше stopB в маршруте
+ * 
+ * Ищет все маршруты, которые:
+ * 1. Содержат обе остановки (stopA и stopB)
+ * 2. Остановка stopA идет раньше stopB в маршруте
+ */
 List<std::shared_ptr<Route>> RouteSearchAlgorithm::findRoutes(const std::string& stopA,
                                                                     const std::string& stopB) {
     List<std::shared_ptr<Route>> foundRoutes;
     const auto& routes = system->getRoutes();
 
+    // Проверяем каждый маршрут
     for (const auto& route : routes) {
+        // Маршрут должен содержать обе остановки и stopA должна быть раньше stopB
         if (route->containsStop(stopA) &&
             route->containsStop(stopB) &&
             route->isStopBefore(stopA, stopB)) {
