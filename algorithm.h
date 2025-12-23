@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <type_traits>
+#include <iterator>
 #include "list.h"
 #include "journey.h"
 #include "time.h"
@@ -27,6 +28,49 @@ class Algorithm : public IAlgorithm {
 protected:
     TransportSystem* system;
     T algorithmObject;  // Единственный объект алгоритма
+
+public:
+    // Итератор для Algorithm (singleton iterator - для одного элемента)
+    class Iterator {
+    private:
+        T* ptr;  // Указатель на объект алгоритма
+        bool visited;  // Флаг, указывающий, был ли элемент посещен
+
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = T;
+        using difference_type = std::ptrdiff_t;
+        using pointer = T*;
+        using reference = T&;
+
+        Iterator(T* p, bool v = false) : ptr(p), visited(v) {}
+
+        T& operator*() { return *ptr; }
+        const T& operator*() const { return *ptr; }
+        T* operator->() { return ptr; }
+        const T* operator->() const { return ptr; }
+
+        Iterator& operator++() {
+            visited = true;
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator tmp = *this;
+            visited = true;
+            return tmp;
+        }
+
+        bool operator==(const Iterator& other) const {
+            // Итераторы равны, если оба указывают на nullptr или оба посетили элемент
+            return (ptr == nullptr && other.ptr == nullptr) ||
+                   (ptr == other.ptr && visited && other.visited);
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return !(*this == other);
+        }
+    };
 
 public:
     // Конструктор для лямбда-функций и функциональных объектов (копирование)
@@ -83,6 +127,23 @@ public:
 
     const T& getAlgorithm() const {
         return algorithmObject;
+    }
+
+    // Методы для работы с итераторами
+    Iterator begin() {
+        return Iterator(&algorithmObject, false);
+    }
+
+    Iterator end() {
+        return Iterator(&algorithmObject, true);
+    }
+
+    Iterator begin() const {
+        return Iterator(const_cast<T*>(&algorithmObject), false);
+    }
+
+    Iterator end() const {
+        return Iterator(const_cast<T*>(&algorithmObject), true);
     }
 };
 

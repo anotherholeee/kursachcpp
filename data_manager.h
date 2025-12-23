@@ -3,6 +3,7 @@
 
 #include <string>
 #include <filesystem>
+#include <fstream>
 
 class TransportSystem;
 
@@ -55,6 +56,10 @@ private:
     void loadRoutes(TransportSystem& system);
     void loadTrips(TransportSystem& system);
     void loadAdminCredentials(TransportSystem& system);
+    
+    // Вспомогательные методы для загрузки данных из файлов
+    int loadVehiclesFromFile(std::ifstream& file, TransportSystem& system, const std::string& fileName);
+    int loadTripsFromFile(std::ifstream& file, TransportSystem& system, const std::string& fileName);
 };
 
 #endif // DATA_MANAGER_H

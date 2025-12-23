@@ -122,10 +122,14 @@ void DataManager::loadAllData(TransportSystem& system) {
         // Проверяем существование файлов
         List<std::string> files;
         files.push_back("stops.txt");
-        files.push_back("vehicles.txt");
+        files.push_back("bus.txt");
+        files.push_back("trolleybus.txt");
+        files.push_back("tram.txt");
         files.push_back("drivers.txt");
         files.push_back("routes.txt");
-        files.push_back("trips.txt");
+        files.push_back("busTrips.txt");
+        files.push_back("trolleybusTrips.txt");
+        files.push_back("tramTrips.txt");
         for (const auto& fileName : files) {
             std::filesystem::path filePath = dataPath / fileName;
             if (std::filesystem::exists(filePath)) {
@@ -175,22 +179,49 @@ void DataManager::saveStops(TransportSystem& system) {
 }
 
 void DataManager::saveVehicles(TransportSystem& system) {
-    std::string filePath = dataDirectory + "vehicles.txt";
-    std::cout << "[DEBUG] Сохранение vehicles.txt в: " << filePath << std::endl;
-    std::ofstream file(filePath, std::ios::trunc);
-    if (!file.is_open()) {
-        std::cout << "[DEBUG] Ошибка: не удалось открыть файл для записи. Полный путь: " << std::filesystem::absolute(filePath).string() << std::endl;
-        throw FileException("vehicles.txt", "открытие для записи");
+    const auto& vehicles = system.getVehicles();
+    
+    // Открываем три файла для разных типов транспорта
+    std::ofstream busFile(dataDirectory + "bus.txt", std::ios::trunc);
+    std::ofstream trolleybusFile(dataDirectory + "trolleybus.txt", std::ios::trunc);
+    std::ofstream tramFile(dataDirectory + "tram.txt", std::ios::trunc);
+    
+    if (!busFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл bus.txt для записи" << std::endl;
+        throw FileException("bus.txt", "открытие для записи");
+    }
+    if (!trolleybusFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл trolleybus.txt для записи" << std::endl;
+        throw FileException("trolleybus.txt", "открытие для записи");
+    }
+    if (!tramFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл tram.txt для записи" << std::endl;
+        throw FileException("tram.txt", "открытие для записи");
     }
 
-    const auto& vehicles = system.getVehicles();
-    int savedCount = 0;
+    int busCount = 0, trolleybusCount = 0, tramCount = 0;
+    
     for (const auto& vehicle : vehicles) {
-        file << vehicle->serialize() << "\n";
-        savedCount++;
+        std::string vehicleType = vehicle->getType();
+        if (vehicleType == "Автобус") {
+            busFile << vehicle->serialize() << "\n";
+            busCount++;
+        } else if (vehicleType == "Троллейбус") {
+            trolleybusFile << vehicle->serialize() << "\n";
+            trolleybusCount++;
+        } else if (vehicleType == "Трамвай") {
+            tramFile << vehicle->serialize() << "\n";
+            tramCount++;
+        }
     }
-    file.close();
-    std::cout << "[DEBUG] Сохранено транспорта: " << savedCount << " в файл " << filePath << std::endl;
+    
+    busFile.close();
+    trolleybusFile.close();
+    tramFile.close();
+    
+    std::cout << "[DEBUG] Сохранено автобусов: " << busCount << " в файл " << dataDirectory << "bus.txt" << std::endl;
+    std::cout << "[DEBUG] Сохранено троллейбусов: " << trolleybusCount << " в файл " << dataDirectory << "trolleybus.txt" << std::endl;
+    std::cout << "[DEBUG] Сохранено трамваев: " << tramCount << " в файл " << dataDirectory << "tram.txt" << std::endl;
 }
 
 void DataManager::saveDrivers(TransportSystem& system) {
@@ -263,22 +294,54 @@ void DataManager::saveRoutes(TransportSystem& system) {
 }
 
 void DataManager::saveTrips(TransportSystem& system) {
-    std::string filePath = dataDirectory + "trips.txt";
-    std::cout << "[DEBUG] Сохранение trips.txt в: " << filePath << std::endl;
-    std::ofstream file(filePath, std::ios::trunc);
-    if (!file.is_open()) {
-        std::cout << "[DEBUG] Ошибка: не удалось открыть файл для записи. Полный путь: " << std::filesystem::absolute(filePath).string() << std::endl;
-        throw FileException("trips.txt", "открытие для записи");
+    const auto& trips = system.getTrips();
+    
+    // Открываем три файла для разных типов транспорта
+    std::ofstream busTripsFile(dataDirectory + "busTrips.txt", std::ios::trunc);
+    std::ofstream trolleybusTripsFile(dataDirectory + "trolleybusTrips.txt", std::ios::trunc);
+    std::ofstream tramTripsFile(dataDirectory + "tramTrips.txt", std::ios::trunc);
+    
+    if (!busTripsFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл busTrips.txt для записи" << std::endl;
+        throw FileException("busTrips.txt", "открытие для записи");
+    }
+    if (!trolleybusTripsFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл trolleybusTrips.txt для записи" << std::endl;
+        throw FileException("trolleybusTrips.txt", "открытие для записи");
+    }
+    if (!tramTripsFile.is_open()) {
+        std::cout << "[DEBUG] Ошибка: не удалось открыть файл tramTrips.txt для записи" << std::endl;
+        throw FileException("tramTrips.txt", "открытие для записи");
     }
 
-    const auto& trips = system.getTrips();
-    int savedCount = 0;
+    int busTripsCount = 0, trolleybusTripsCount = 0, tramTripsCount = 0;
+    
     for (const auto& trip : trips) {
-        file << trip->serialize() << "\n";
-        savedCount++;
+        auto route = trip->getRoute();
+        if (!route) {
+            continue; // Пропускаем рейсы без маршрута
+        }
+        
+        std::string vehicleType = route->getVehicleType();
+        if (vehicleType == "Автобус") {
+            busTripsFile << trip->serialize() << "\n";
+            busTripsCount++;
+        } else if (vehicleType == "Троллейбус") {
+            trolleybusTripsFile << trip->serialize() << "\n";
+            trolleybusTripsCount++;
+        } else if (vehicleType == "Трамвай") {
+            tramTripsFile << trip->serialize() << "\n";
+            tramTripsCount++;
+        }
     }
-    file.close();
-    std::cout << "[DEBUG] Сохранено рейсов: " << savedCount << " в файл " << filePath << std::endl;
+    
+    busTripsFile.close();
+    trolleybusTripsFile.close();
+    tramTripsFile.close();
+    
+    std::cout << "[DEBUG] Сохранено рейсов автобусов: " << busTripsCount << " в файл " << dataDirectory << "busTrips.txt" << std::endl;
+    std::cout << "[DEBUG] Сохранено рейсов троллейбусов: " << trolleybusTripsCount << " в файл " << dataDirectory << "trolleybusTrips.txt" << std::endl;
+    std::cout << "[DEBUG] Сохранено рейсов трамваев: " << tramTripsCount << " в файл " << dataDirectory << "tramTrips.txt" << std::endl;
 }
 
 void DataManager::saveAdminCredentials(TransportSystem& system) {
@@ -375,14 +438,61 @@ void DataManager::loadStops(TransportSystem& system) {
 }
 
 void DataManager::loadVehicles(TransportSystem& system) {
-    std::string filePath = dataDirectory + "vehicles.txt";
-    std::cout << "[DEBUG] Попытка загрузить vehicles.txt из: " << filePath << std::endl;
-    std::ifstream file(filePath);
-    if (!file.is_open()) {
-        std::cout << "[DEBUG] Файл vehicles.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(filePath).string() << std::endl;
-        return;
+    int totalLoaded = 0;
+    
+    // Загружаем автобусы
+    std::string busFilePath = dataDirectory + "bus.txt";
+    std::cout << "[DEBUG] Попытка загрузить bus.txt из: " << busFilePath << std::endl;
+    std::ifstream busFile(busFilePath);
+    if (busFile.is_open()) {
+        int loaded = loadVehiclesFromFile(busFile, system, "bus.txt");
+        totalLoaded += loaded;
+        busFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл bus.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(busFilePath).string() << std::endl;
     }
+    
+    // Загружаем троллейбусы
+    std::string trolleybusFilePath = dataDirectory + "trolleybus.txt";
+    std::cout << "[DEBUG] Попытка загрузить trolleybus.txt из: " << trolleybusFilePath << std::endl;
+    std::ifstream trolleybusFile(trolleybusFilePath);
+    if (trolleybusFile.is_open()) {
+        int loaded = loadVehiclesFromFile(trolleybusFile, system, "trolleybus.txt");
+        totalLoaded += loaded;
+        trolleybusFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл trolleybus.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(trolleybusFilePath).string() << std::endl;
+    }
+    
+    // Загружаем трамваи
+    std::string tramFilePath = dataDirectory + "tram.txt";
+    std::cout << "[DEBUG] Попытка загрузить tram.txt из: " << tramFilePath << std::endl;
+    std::ifstream tramFile(tramFilePath);
+    if (tramFile.is_open()) {
+        int loaded = loadVehiclesFromFile(tramFile, system, "tram.txt");
+        totalLoaded += loaded;
+        tramFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл tram.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(tramFilePath).string() << std::endl;
+    }
+    
+    // Для обратной совместимости: если новые файлы не найдены, пытаемся загрузить из старого vehicles.txt
+    if (totalLoaded == 0) {
+        std::string oldFilePath = dataDirectory + "vehicles.txt";
+        std::cout << "[DEBUG] Новые файлы не найдены, пытаемся загрузить из старого vehicles.txt" << std::endl;
+        std::ifstream oldFile(oldFilePath);
+        if (oldFile.is_open()) {
+            int loaded = loadVehiclesFromFile(oldFile, system, "vehicles.txt");
+            totalLoaded += loaded;
+            oldFile.close();
+        }
+    }
+    
+    std::cout << "[DEBUG] Всего загружено транспорта: " << totalLoaded << std::endl;
+}
 
+// Вспомогательный метод для загрузки транспорта из файла
+int DataManager::loadVehiclesFromFile(std::ifstream& file, TransportSystem& system, const std::string& fileName) {
     std::string line;
     int lineNumber = 0;
     int loadedCount = 0;
@@ -507,7 +617,7 @@ void DataManager::loadVehicles(TransportSystem& system) {
             }
         } catch (const std::exception& e) {
             errorLines++;
-            std::cout << "[DEBUG] Ошибка при загрузке транспорта из строки " << lineNumber << ": " << e.what() << std::endl;
+            std::cout << "[DEBUG] Ошибка при загрузке транспорта из файла " << fileName << ", строка " << lineNumber << ": " << e.what() << std::endl;
             std::cout << "[DEBUG] Содержимое строки (первые 100 символов): " << line.substr(0, 100) << std::endl;
             // Не бросаем исключение, просто пропускаем неправильную строку
             continue;
@@ -515,21 +625,21 @@ void DataManager::loadVehicles(TransportSystem& system) {
     }
 
     if (file.bad() && !file.eof()) {
-        throw FileException("vehicles.txt", "ошибка чтения файла");
+        throw FileException(fileName, "ошибка чтения файла");
     }
-    file.close();
 
-    std::cout << "[DEBUG] Всего загружено транспорта: " << loadedCount << std::endl;
     if (emptyLines > 0) {
-        std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
+        std::cout << "[DEBUG] Пропущено пустых строк в " << fileName << ": " << emptyLines << std::endl;
     }
     if (errorLines > 0) {
-        std::cout << "[DEBUG] Ошибок при загрузке транспорта: " << errorLines << std::endl;
+        std::cout << "[DEBUG] Ошибок при загрузке транспорта из " << fileName << ": " << errorLines << std::endl;
     }
 
     if (loadedCount == 0 && lineNumber == 0) {
-        std::cout << "[DEBUG] ВНИМАНИЕ: Файл vehicles.txt пуст или не содержит данных!" << std::endl;
+        std::cout << "[DEBUG] ВНИМАНИЕ: Файл " << fileName << " пуст или не содержит данных!" << std::endl;
     }
+    
+    return loadedCount;
 }
 
 void DataManager::loadDrivers(TransportSystem& system) {
@@ -709,14 +819,61 @@ void DataManager::loadRoutes(TransportSystem& system) {
 }
 
 void DataManager::loadTrips(TransportSystem& system) {
-    std::string filePath = dataDirectory + "trips.txt";
-    std::cout << "[DEBUG] Попытка загрузить trips.txt из: " << filePath << std::endl;
-    std::ifstream file(filePath);
-    if (!file.is_open()) {
-        std::cout << "[DEBUG] Файл trips.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(filePath).string() << std::endl;
-        return;
+    int totalLoaded = 0;
+    
+    // Загружаем рейсы автобусов
+    std::string busTripsFilePath = dataDirectory + "busTrips.txt";
+    std::cout << "[DEBUG] Попытка загрузить busTrips.txt из: " << busTripsFilePath << std::endl;
+    std::ifstream busTripsFile(busTripsFilePath);
+    if (busTripsFile.is_open()) {
+        int loaded = loadTripsFromFile(busTripsFile, system, "busTrips.txt");
+        totalLoaded += loaded;
+        busTripsFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл busTrips.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(busTripsFilePath).string() << std::endl;
     }
+    
+    // Загружаем рейсы троллейбусов
+    std::string trolleybusTripsFilePath = dataDirectory + "trolleybusTrips.txt";
+    std::cout << "[DEBUG] Попытка загрузить trolleybusTrips.txt из: " << trolleybusTripsFilePath << std::endl;
+    std::ifstream trolleybusTripsFile(trolleybusTripsFilePath);
+    if (trolleybusTripsFile.is_open()) {
+        int loaded = loadTripsFromFile(trolleybusTripsFile, system, "trolleybusTrips.txt");
+        totalLoaded += loaded;
+        trolleybusTripsFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл trolleybusTrips.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(trolleybusTripsFilePath).string() << std::endl;
+    }
+    
+    // Загружаем рейсы трамваев
+    std::string tramTripsFilePath = dataDirectory + "tramTrips.txt";
+    std::cout << "[DEBUG] Попытка загрузить tramTrips.txt из: " << tramTripsFilePath << std::endl;
+    std::ifstream tramTripsFile(tramTripsFilePath);
+    if (tramTripsFile.is_open()) {
+        int loaded = loadTripsFromFile(tramTripsFile, system, "tramTrips.txt");
+        totalLoaded += loaded;
+        tramTripsFile.close();
+    } else {
+        std::cout << "[DEBUG] Файл tramTrips.txt не найден или не может быть открыт. Полный путь: " << std::filesystem::absolute(tramTripsFilePath).string() << std::endl;
+    }
+    
+    // Для обратной совместимости: если новые файлы не найдены, пытаемся загрузить из старого trips.txt
+    if (totalLoaded == 0) {
+        std::string oldFilePath = dataDirectory + "trips.txt";
+        std::cout << "[DEBUG] Новые файлы не найдены, пытаемся загрузить из старого trips.txt" << std::endl;
+        std::ifstream oldFile(oldFilePath);
+        if (oldFile.is_open()) {
+            int loaded = loadTripsFromFile(oldFile, system, "trips.txt");
+            totalLoaded += loaded;
+            oldFile.close();
+        }
+    }
+    
+    std::cout << "[DEBUG] Всего загружено рейсов: " << totalLoaded << std::endl;
+}
 
+// Вспомогательный метод для загрузки рейсов из файла
+int DataManager::loadTripsFromFile(std::ifstream& file, TransportSystem& system, const std::string& fileName) {
     std::string line;
     int lineNumber = 0;
     int loadedCount = 0;
@@ -753,13 +910,13 @@ void DataManager::loadTrips(TransportSystem& system) {
             if (!exists) {
                 system.addTripDirect(trip);
                 loadedCount++;
-                std::cout << "[DEBUG] Загружен рейс ID: " << trip->getTripId() << std::endl;
+                std::cout << "[DEBUG] Загружен рейс ID: " << trip->getTripId() << " из " << fileName << std::endl;
             } else {
                 std::cout << "[DEBUG] Рейс с ID " << trip->getTripId() << " уже существует, пропускаем" << std::endl;
             }
         } catch (const std::exception& e) {
             errorLines++;
-            std::cout << "[DEBUG] Ошибка при загрузке рейса из строки " << lineNumber << ": " << e.what() << std::endl;
+            std::cout << "[DEBUG] Ошибка при загрузке рейса из файла " << fileName << ", строка " << lineNumber << ": " << e.what() << std::endl;
             std::cout << "[DEBUG] Содержимое строки (первые 100 символов): " << line.substr(0, 100) << std::endl;
             // Не бросаем исключение, просто пропускаем неправильную строку
             continue;
@@ -767,21 +924,21 @@ void DataManager::loadTrips(TransportSystem& system) {
     }
 
     if (file.bad() && !file.eof()) {
-        throw FileException("trips.txt", "ошибка чтения файла");
+        throw FileException(fileName, "ошибка чтения файла");
     }
-    file.close();
 
-    std::cout << "[DEBUG] Всего загружено рейсов: " << loadedCount << std::endl;
     if (emptyLines > 0) {
-        std::cout << "[DEBUG] Пропущено пустых строк: " << emptyLines << std::endl;
+        std::cout << "[DEBUG] Пропущено пустых строк в " << fileName << ": " << emptyLines << std::endl;
     }
     if (errorLines > 0) {
-        std::cout << "[DEBUG] Ошибок при загрузке рейсов: " << errorLines << std::endl;
+        std::cout << "[DEBUG] Ошибок при загрузке рейсов из " << fileName << ": " << errorLines << std::endl;
     }
 
     if (loadedCount == 0 && lineNumber == 0) {
-        std::cout << "[DEBUG] ВНИМАНИЕ: Файл trips.txt пуст или не содержит данных!" << std::endl;
+        std::cout << "[DEBUG] ВНИМАНИЕ: Файл " << fileName << " пуст или не содержит данных!" << std::endl;
     }
+    
+    return loadedCount;
 }
 
 void DataManager::loadAdminCredentials(TransportSystem& system) {

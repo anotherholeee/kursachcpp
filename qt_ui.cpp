@@ -17,10 +17,64 @@
 #include <QHeaderView>
 #include <QDateTime>
 #include <QInputDialog>
+#include <QRegularExpressionValidator>
+#include <QValidator>
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <set>
+
+// ==================== Вспомогательные функции валидации для Qt ====================
+
+// Вспомогательная функция для проверки заглавной буквы в Qt
+static bool hasCapitalFirstLetterQt(const QString& str) {
+    if (str.isEmpty()) return false;
+    
+    QChar first = str[0];
+    // Для английских букв
+    if (first.isLetter() && first.isUpper()) {
+        return true;
+    }
+    
+    // Для русских заглавных букв (А-Я, Ё)
+    if (first >= QChar(0x0410) && first <= QChar(0x042F)) { // А-Я
+        return true;
+    }
+    if (first == QChar(0x0401)) { // Ё
+        return true;
+    }
+    
+    return false;
+}
+
+// Вспомогательная функция для проверки формата имени
+static bool isValidNameFormatQt(const QString& str) {
+    if (str.isEmpty()) return false;
+    
+    // Проверяем, что первое слово начинается с заглавной буквы
+    if (!hasCapitalFirstLetterQt(str)) {
+        return false;
+    }
+    
+    // Проверяем остальные слова (после пробелов, дефисов)
+    for (int i = 1; i < str.length(); ++i) {
+        if (str[i-1] == ' ' || str[i-1] == '-') {
+            // Пропускаем пробелы/дефисы подряд
+            while (i < str.length() && (str[i] == ' ' || str[i] == '-')) {
+                i++;
+            }
+            if (i < str.length()) {
+                // Проверяем, что после пробела/дефиса идет заглавная буква
+                QString remaining = str.mid(i);
+                if (!hasCapitalFirstLetterQt(remaining)) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
+}
 
 // ==================== MainWindow ====================
 
@@ -503,32 +557,31 @@ void AdminModeWidget::refreshTripsTable() {
 
                 validTrips++;
             } catch (const std::exception& e) {
-                std::cout << "[DEBUG] Ошибка при обработке рейса: " << e.what() << std::endl;
                 // Пропускаем проблемный рейс и продолжаем
+                // Ошибка будет отображена в таблице, если все рейсы не удастся загрузить
                 continue;
             }
         }
 
-        std::cout << "[DEBUG] Успешно отображено рейсов: " << validTrips << " из " << trips.size() << std::endl;
-
         if (validTrips == 0 && !trips.empty()) {
             tripsTable->setRowCount(0);
             tripsTable->insertRow(0);
-            QTableWidgetItem* errorItem = new QTableWidgetItem("Ошибка при загрузке данных о рейсах. Проверьте консоль для деталей.");
+            QTableWidgetItem* errorItem = new QTableWidgetItem("Ошибка при загрузке данных о рейсах.");
             errorItem->setTextAlignment(Qt::AlignCenter);
             tripsTable->setItem(0, 0, errorItem);
             tripsTable->setSpan(0, 0, 1, 6);
+            QMessageBox::warning(this, "Ошибка загрузки", "Не удалось загрузить данные о рейсах.");
         } else {
             // Автоматически подгоняем ширину колонок
             tripsTable->resizeColumnsToContents();
         }
     } catch (const std::exception& e) {
-        std::cout << "[DEBUG] Критическая ошибка в refreshTripsTable: " << e.what() << std::endl;
         tripsTable->insertRow(0);
         QTableWidgetItem* errorItem = new QTableWidgetItem(QString("Ошибка: %1").arg(e.what()));
         errorItem->setTextAlignment(Qt::AlignCenter);
         tripsTable->setItem(0, 0, errorItem);
         tripsTable->setSpan(0, 0, 1, 6);
+        QMessageBox::critical(this, "Критическая ошибка", QString("Критическая ошибка в refreshTripsTable: %1").arg(e.what()));
     }
 }
 
@@ -1083,6 +1136,7 @@ void TransportScheduleDialog::populateSchedule(const std::string& vehicleType, i
         errorItem->setTextAlignment(Qt::AlignCenter);
         scheduleTable->setItem(0, 0, errorItem);
         scheduleTable->setSpan(0, 0, 1, isGuestMode ? 5 : 7);
+        QMessageBox::critical(this, "Ошибка", QString("Ошибка при загрузке расписания: %1").arg(e.what()));
     }
 }
 
@@ -1831,9 +1885,17 @@ void AddVehicleDialog::setupUI() {
 
     QLabel* plateLabel = new QLabel("Номер:", this);
     licensePlateEdit = new QLineEdit(this);
+    // Номерной знак может содержать буквы, цифры, пробелы
+    QRegularExpressionValidator* plateValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[А-Яа-яA-Za-z0-9\\s]+$"), this);
+    licensePlateEdit->setValidator(plateValidator);
 
     QLabel* modelLabel = new QLabel("Модель:", this);
     modelEdit = new QLineEdit(this);
+    // Модель может содержать буквы, цифры, дефисы
+    QRegularExpressionValidator* modelValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[А-Яа-яA-Za-z0-9\\-\\s]+$"), this);
+    modelEdit->setValidator(modelValidator);
 
     QLabel* capacityLabel = new QLabel("Вместимость (макс. 60):", this);
     capacityEdit = new QSpinBox(this);
@@ -1846,6 +1908,10 @@ void AddVehicleDialog::setupUI() {
     QLabel* fuelLabel = new QLabel("Тип топлива (по умолчанию: дизель):", fuelWidget);
     fuelCapacityEdit = new QLineEdit(fuelWidget);
     fuelCapacityEdit->setPlaceholderText("дизель");
+    // Тип топлива: только буквы
+    QRegularExpressionValidator* fuelValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[А-Яа-яA-Za-z\\s]+$"), this);
+    fuelCapacityEdit->setValidator(fuelValidator);
     fuelLayout->addWidget(fuelLabel);
     fuelLayout->addWidget(fuelCapacityEdit);
 
@@ -1854,6 +1920,10 @@ void AddVehicleDialog::setupUI() {
     QLabel* batteryLabel = new QLabel("Напряжение (В, по умолчанию: 600):", batteryWidget);
     batteryCapacityEdit = new QLineEdit(batteryWidget);
     batteryCapacityEdit->setPlaceholderText("600");
+    // Напряжение: только цифры и точка для десятичных чисел
+    QRegularExpressionValidator* voltageValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[0-9]+\\.?[0-9]*$"), this);
+    batteryCapacityEdit->setValidator(voltageValidator);
     batteryLayout->addWidget(batteryLabel);
     batteryLayout->addWidget(batteryCapacityEdit);
 
@@ -1893,13 +1963,49 @@ void AddVehicleDialog::onVehicleTypeChanged(int index) {
 
 void AddVehicleDialog::onAddClicked() {
     try {
-        QString plate = licensePlateEdit->text();
-        QString model = modelEdit->text();
+        QString plate = licensePlateEdit->text().trimmed();
+        QString model = modelEdit->text().trimmed();
         int capacity = capacityEdit->value();
         QString type = vehicleTypeComboBox->currentText();
 
         if (plate.isEmpty() || model.isEmpty()) {
             QMessageBox::warning(this, "Ошибка", "Заполните все обязательные поля.");
+            return;
+        }
+
+        // Проверка валидации полей
+        int pos = 0;
+        if (licensePlateEdit->validator() && licensePlateEdit->validator()->validate(plate, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Номерной знак может содержать только буквы, цифры и пробелы.");
+            return;
+        }
+        if (modelEdit->validator() && modelEdit->validator()->validate(model, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Модель может содержать только буквы, цифры, дефисы и пробелы.");
+            return;
+        }
+
+        // Проверка длины номера
+        if (plate.length() < 2 || plate.length() > 20) {
+            QMessageBox::warning(this, "Ошибка", "Номерной знак должен быть от 2 до 20 символов.");
+            return;
+        }
+
+        // Проверка длины модели
+        if (model.length() < 2 || model.length() > 50) {
+            QMessageBox::warning(this, "Ошибка", "Модель должна быть от 2 до 50 символов.");
+            return;
+        }
+
+        // Проверка формата модели (первая буква заглавная, если есть буквы)
+        bool hasLetters = false;
+        for (const QChar& c : model) {
+            if (c.isLetter()) {
+                hasLetters = true;
+                break;
+            }
+        }
+        if (hasLetters && !isValidNameFormatQt(model)) {
+            QMessageBox::warning(this, "Ошибка", "Модель должна начинаться с заглавной буквы (например: ЛиАЗ-5256, Трамвай-71).");
             return;
         }
 
@@ -1954,6 +2060,10 @@ AddStopDialog::AddStopDialog(TransportSystem* system, QWidget *parent)
 
     QLabel* nameLabel = new QLabel("Название:", this);
     stopNameEdit = new QLineEdit(this);
+    // Валидатор для названия остановки: только буквы, пробелы, дефисы
+    QRegularExpressionValidator* stopNameValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[А-Яа-яA-Za-z\\s\\-']+$"), this);
+    stopNameEdit->setValidator(stopNameValidator);
 
     QPushButton* addBtn = new QPushButton("Добавить", this);
     QPushButton* cancelBtn = new QPushButton("Отмена", this);
@@ -1972,10 +2082,29 @@ AddStopDialog::AddStopDialog(TransportSystem* system, QWidget *parent)
 void AddStopDialog::onAddClicked() {
     try {
         int id = stopIdSpinBox->value();
-        QString name = stopNameEdit->text();
+        QString name = stopNameEdit->text().trimmed();
 
         if (name.isEmpty()) {
             QMessageBox::warning(this, "Ошибка", "Введите название остановки.");
+            return;
+        }
+
+        // Проверка валидации названия
+        int pos = 0;
+        if (stopNameEdit->validator() && stopNameEdit->validator()->validate(name, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Название остановки должно содержать только буквы, пробелы, дефисы и апострофы.");
+            return;
+        }
+
+        // Проверка длины
+        if (name.length() < 3 || name.length() > 100) {
+            QMessageBox::warning(this, "Ошибка", "Название остановки должно быть от 3 до 100 символов.");
+            return;
+        }
+
+        // Проверка формата (первая буква заглавная)
+        if (!isValidNameFormatQt(name)) {
+            QMessageBox::warning(this, "Ошибка", "Название остановки должно начинаться с заглавной буквы (например: Центральная площадь, Улица Ленина).");
             return;
         }
 
@@ -2000,12 +2129,18 @@ AddDriverDialog::AddDriverDialog(TransportSystem* system, QWidget *parent)
 
     QLabel* firstNameLabel = new QLabel("Имя:", this);
     firstNameEdit = new QLineEdit(this);
+    // Валидатор для имени: только буквы, пробелы, дефисы, апострофы
+    QRegularExpressionValidator* nameValidator = new QRegularExpressionValidator(
+        QRegularExpression("^[А-Яа-яA-Za-z\\s\\-']+$"), this);
+    firstNameEdit->setValidator(nameValidator);
 
     QLabel* lastNameLabel = new QLabel("Фамилия:", this);
     lastNameEdit = new QLineEdit(this);
+    lastNameEdit->setValidator(nameValidator);
 
     QLabel* middleNameLabel = new QLabel("Отчество:", this);
     middleNameEdit = new QLineEdit(this);
+    middleNameEdit->setValidator(nameValidator);
 
     QLabel* categoryLabel = new QLabel("Категория водительских прав:", this);
     categoryComboBox = new QComboBox(this);
@@ -2034,13 +2169,57 @@ AddDriverDialog::AddDriverDialog(TransportSystem* system, QWidget *parent)
 
 void AddDriverDialog::onAddClicked() {
     try {
-        QString firstName = firstNameEdit->text();
-        QString lastName = lastNameEdit->text();
-        QString middleName = middleNameEdit->text();
+        QString firstName = firstNameEdit->text().trimmed();
+        QString lastName = lastNameEdit->text().trimmed();
+        QString middleName = middleNameEdit->text().trimmed();
         QString category = categoryComboBox->currentData().toString();
 
         if (firstName.isEmpty() || lastName.isEmpty()) {
             QMessageBox::warning(this, "Ошибка", "Заполните обязательные поля (Имя и Фамилия).");
+            return;
+        }
+
+        // Проверка валидации полей
+        int pos = 0;
+        if (firstNameEdit->validator() && firstNameEdit->validator()->validate(firstName, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Имя должно содержать только буквы, пробелы, дефисы и апострофы.");
+            return;
+        }
+        if (lastNameEdit->validator() && lastNameEdit->validator()->validate(lastName, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Фамилия должна содержать только буквы, пробелы, дефисы и апострофы.");
+            return;
+        }
+        if (!middleName.isEmpty() && middleNameEdit->validator() && 
+            middleNameEdit->validator()->validate(middleName, pos) != QValidator::Acceptable) {
+            QMessageBox::warning(this, "Ошибка", "Отчество должно содержать только буквы, пробелы, дефисы и апострофы.");
+            return;
+        }
+
+        // Проверка длины
+        if (firstName.length() < 2 || firstName.length() > 50) {
+            QMessageBox::warning(this, "Ошибка", "Имя должно быть от 2 до 50 символов.");
+            return;
+        }
+        if (lastName.length() < 2 || lastName.length() > 50) {
+            QMessageBox::warning(this, "Ошибка", "Фамилия должна быть от 2 до 50 символов.");
+            return;
+        }
+        if (!middleName.isEmpty() && (middleName.length() < 2 || middleName.length() > 50)) {
+            QMessageBox::warning(this, "Ошибка", "Отчество должно быть от 2 до 50 символов.");
+            return;
+        }
+
+        // Проверка формата имени (первая буква заглавная)
+        if (!isValidNameFormatQt(firstName)) {
+            QMessageBox::warning(this, "Ошибка", "Имя должно начинаться с заглавной буквы (например: Иван, Мария-Луиза).");
+            return;
+        }
+        if (!isValidNameFormatQt(lastName)) {
+            QMessageBox::warning(this, "Ошибка", "Фамилия должна начинаться с заглавной буквы (например: Иванов, Петров-Сидоров).");
+            return;
+        }
+        if (!middleName.isEmpty() && !isValidNameFormatQt(middleName)) {
+            QMessageBox::warning(this, "Ошибка", "Отчество должно начинаться с заглавной буквы (например: Иванович, Петровна).");
             return;
         }
 

@@ -83,18 +83,36 @@ class ElectricTransport {
 }
 
 class Bus {
-    + Bus(m : string, lp : string, cap : int, fuel : string)
+    - doorCount : int
+    - hasAirConditioning : bool
+    - bodyType : string
+    + Bus(m : string, lp : string, cap : int, fuel : string, doors : int, ac : bool, body : string)
     + {virtual} ~Bus()
+    + getDoorCount() : int
+    + hasAirConditioning() : bool
+    + getBodyType() : string
 }
 
 class Tram {
-    + Tram(m : string, lp : string, cap : int, volt : double)
+    - carCount : int
+    - trackGauge : double
+    - hasPantograph : bool
+    + Tram(m : string, lp : string, cap : int, volt : double, cars : int, gauge : double, pantograph : bool)
     + {virtual} ~Tram()
+    + getCarCount() : int
+    + getTrackGauge() : double
+    + hasPantograph() : bool
 }
 
 class Trolleybus {
-    + Trolleybus(m : string, lp : string, cap : int, volt : double)
+    - poleCount : int
+    - hasAutonomousMode : bool
+    - autonomousRange : double
+    + Trolleybus(m : string, lp : string, cap : int, volt : double, poles : int, autonomous : bool, range : double)
     + {virtual} ~Trolleybus()
+    + getPoleCount() : int
+    + hasAutonomousMode() : bool
+    + getAutonomousRange() : double
 }
 
 ' Классы данных

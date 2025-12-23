@@ -4,6 +4,17 @@
 #include "transport_system.h"
 #include <string>
 
+// Функции валидации ввода
+bool isValidNumber(const std::string& str);
+bool isValidText(const std::string& str);
+bool containsOnlyDigits(const std::string& str);
+bool containsOnlyLetters(const std::string& str);
+bool hasCapitalFirstLetter(const std::string& str);
+bool isValidNameFormat(const std::string& str);
+bool isValidLength(const std::string& str, size_t minLen, size_t maxLen);
+bool isValidLicensePlate(const std::string& str);
+bool isValidDriverCategory(const std::string& str);
+
 void displayGuestMenu();
 void displayAdminMenu();
 void displayLoginMenu();

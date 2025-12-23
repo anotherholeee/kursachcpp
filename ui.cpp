@@ -13,6 +13,175 @@
 #include <limits>
 #include <algorithm>
 #include <string>
+#include <cctype>
+#include <locale>
+
+// ==================== Функции валидации ввода ====================
+
+bool containsOnlyDigits(const std::string& str) {
+    if (str.empty()) return false;
+    for (char c : str) {
+        if (!std::isdigit(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool containsOnlyLetters(const std::string& str) {
+    if (str.empty()) return false;
+    
+    bool hasLetter = false;
+    for (size_t i = 0; i < str.length(); ++i) {
+        unsigned char c = static_cast<unsigned char>(str[i]);
+        
+        // Разрешенные символы: буквы (английские и русские), пробелы, дефисы, апострофы
+        if (std::isalpha(c)) {
+            hasLetter = true;
+        } else if (c == ' ' || c == '-' || c == '\'') {
+            // Разрешаем пробелы, дефисы и апострофы
+            continue;
+        } else if ((c & 0xE0) == 0xC0) {
+            // UTF-8: начало двухбайтового символа (русские буквы)
+            // Проверяем, что следующий байт существует и корректен
+            if (i + 1 < str.length()) {
+                unsigned char next = static_cast<unsigned char>(str[i + 1]);
+                if ((next & 0xC0) == 0x80) {
+                    hasLetter = true;
+                    ++i; // Пропускаем следующий байт
+                    continue;
+                }
+            }
+            return false;
+        } else {
+            // Недопустимый символ
+            return false;
+        }
+    }
+    
+    // Должна быть хотя бы одна буква
+    return hasLetter;
+}
+
+bool isValidNumber(const std::string& str) {
+    return containsOnlyDigits(str);
+}
+
+bool isValidText(const std::string& str) {
+    // Текст должен содержать только буквы, пробелы, дефисы и апострофы
+    // И должен содержать хотя бы одну букву
+    return containsOnlyLetters(str);
+}
+
+// Проверка, что первая буква слова заглавная (для русского и английского алфавита)
+bool hasCapitalFirstLetter(const std::string& str) {
+    if (str.empty()) return false;
+    
+    // Пропускаем пробелы в начале
+    size_t start = 0;
+    while (start < str.length() && (str[start] == ' ' || str[start] == '\t')) {
+        start++;
+    }
+    if (start >= str.length()) return false;
+    
+    // Проверяем первый символ
+    unsigned char first = static_cast<unsigned char>(str[start]);
+    
+    // Для английских букв
+    if (std::isalpha(first)) {
+        return std::isupper(first);
+    }
+    
+    // Для русских букв в UTF-8
+    // Русские заглавные буквы: А-Я (0xD0 0x90 - 0xD0 0xAF) и Ё (0xD0 0x81)
+    if (str.length() >= start + 2) {
+        unsigned char byte1 = static_cast<unsigned char>(str[start]);
+        unsigned char byte2 = static_cast<unsigned char>(str[start + 1]);
+        
+        // Проверяем, что это начало UTF-8 символа (110xxxxx)
+        if ((byte1 & 0xE0) == 0xC0) {
+            // Русские заглавные буквы: А-Я (0xD0 0x90-0xAF), Ё (0xD0 0x81)
+            if (byte1 == 0xD0) {
+                // Ё (0x81) или А-Я (0x90-0xAF)
+                if (byte2 == 0x81 || (byte2 >= 0x90 && byte2 <= 0xAF)) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+// Проверка, что каждое слово начинается с заглавной буквы
+bool isValidNameFormat(const std::string& str) {
+    if (str.empty()) return false;
+    
+    // Проверяем, что первое слово начинается с заглавной буквы
+    if (!hasCapitalFirstLetter(str)) {
+        return false;
+    }
+    
+    // Проверяем остальные слова (после пробелов, дефисов)
+    for (size_t i = 1; i < str.length(); ++i) {
+        // Если предыдущий символ - пробел или дефис, следующий должен быть заглавной буквой
+        if (str[i-1] == ' ' || str[i-1] == '-') {
+            // Пропускаем пробелы/дефисы подряд
+            while (i < str.length() && (str[i] == ' ' || str[i] == '-')) {
+                i++;
+            }
+            if (i < str.length()) {
+                // Проверяем, что после пробела/дефиса идет заглавная буква
+                std::string remaining = str.substr(i);
+                if (!hasCapitalFirstLetter(remaining)) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    return true;
+}
+
+// Проверка минимальной и максимальной длины
+bool isValidLength(const std::string& str, size_t minLen, size_t maxLen) {
+    return str.length() >= minLen && str.length() <= maxLen;
+}
+
+// Проверка формата номера (может содержать буквы, цифры, пробелы)
+bool isValidLicensePlate(const std::string& str) {
+    if (str.empty() || str.length() < 2 || str.length() > 20) {
+        return false;
+    }
+    
+    // Номерной знак должен содержать хотя бы одну букву или цифру
+    bool hasValidChar = false;
+    for (char c : str) {
+        if (std::isalnum(static_cast<unsigned char>(c))) {
+            hasValidChar = true;
+        } else if (c != ' ' && c != '-' && c != '_') {
+            return false; // Недопустимый символ
+        }
+    }
+    
+    return hasValidChar;
+}
+
+// Проверка формата категории водительских прав
+bool isValidDriverCategory(const std::string& str) {
+    if (str.empty() || str.length() > 10) {
+        return false;
+    }
+    
+    // Категория должна содержать только буквы и цифры
+    for (char c : str) {
+        if (!std::isalnum(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
 void displayGuestMenu() {
     std::cout << "\n=== ГОСТЕВОЙ РЕЖИМ ===\n";
@@ -100,12 +269,41 @@ void adminAddRoute(TransportSystem& system) {
 
         std::cout << "Введите тип транспорта (Автобус/Трамвай/Троллейбус): ";
         std::getline(std::cin, vehicleType);
+        vehicleType.erase(0, vehicleType.find_first_not_of(" \t"));
+        vehicleType.erase(vehicleType.find_last_not_of(" \t") + 1);
+        
+        if (vehicleType.empty() || !isValidText(vehicleType)) {
+            throw InputException("Тип транспорта должен содержать только буквы");
+        }
+        if (vehicleType != "Автобус" && vehicleType != "Трамвай" && vehicleType != "Троллейбус") {
+            throw InputException("Тип транспорта должен быть: Автобус, Трамвай или Троллейбус");
+        }
 
         std::cout << "Введите остановки маршрута (введите 'конец' для завершения):\n";
         while (true) {
             std::cout << "Остановка: ";
             std::getline(std::cin, stop);
             if (stop == "конец") break;
+            
+            stop.erase(0, stop.find_first_not_of(" \t"));
+            stop.erase(stop.find_last_not_of(" \t") + 1);
+            
+            if (stop.empty()) {
+                std::cout << "Ошибка: название остановки не может быть пустым. Попробуйте снова.\n";
+                continue;
+            }
+            if (!isValidText(stop)) {
+                std::cout << "Ошибка: название остановки должно содержать только буквы, пробелы, дефисы и апострофы. Попробуйте снова.\n";
+                continue;
+            }
+            if (!isValidLength(stop, 3, 100)) {
+                std::cout << "Ошибка: название остановки должно быть от 3 до 100 символов. Попробуйте снова.\n";
+                continue;
+            }
+            if (!isValidNameFormat(stop)) {
+                std::cout << "Ошибка: название остановки должно начинаться с заглавной буквы. Попробуйте снова.\n";
+                continue;
+            }
             stops.push_back(stop);
         }
 
@@ -172,6 +370,9 @@ void adminAddTrip(TransportSystem& system) {
 
         std::cout << "Введите номерной знак транспортного средства: ";
         std::getline(std::cin, licensePlate);
+        if (licensePlate.empty()) {
+            throw InputException("Номерной знак не может быть пустым");
+        }
 
         auto vehicle = system.findVehicleByLicensePlate(licensePlate);
         if (!vehicle) {
@@ -195,6 +396,14 @@ void adminAddTrip(TransportSystem& system) {
 
         std::cout << "Введите время отправления (HH:MM): ";
         std::getline(std::cin, startTimeStr);
+        // Проверка формата времени HH:MM
+        if (startTimeStr.length() != 5 || startTimeStr[2] != ':' ||
+            !std::isdigit(static_cast<unsigned char>(startTimeStr[0])) ||
+            !std::isdigit(static_cast<unsigned char>(startTimeStr[1])) ||
+            !std::isdigit(static_cast<unsigned char>(startTimeStr[3])) ||
+            !std::isdigit(static_cast<unsigned char>(startTimeStr[4]))) {
+            throw InputException("Неверный формат времени. Используйте формат HH:MM (например, 08:30)");
+        }
 
         std::cout << "Введите день недели (1-понедельник, 2-вторник, ..., 7-воскресенье): ";
         int weekDay;
@@ -225,12 +434,42 @@ void adminAddVehicle(TransportSystem& system) {
 
         std::cout << "Введите тип транспорта (Автобус/Трамвай/Троллейбус): ";
         std::getline(std::cin, type);
+        type.erase(0, type.find_first_not_of(" \t"));
+        type.erase(type.find_last_not_of(" \t") + 1);
+        
+        if (type.empty() || !isValidText(type)) {
+            throw InputException("Тип транспорта должен содержать только буквы");
+        }
+        if (type != "Автобус" && type != "Трамвай" && type != "Троллейбус") {
+            throw InputException("Тип транспорта должен быть: Автобус, Трамвай или Троллейбус");
+        }
 
         std::cout << "Введите модель: ";
         std::getline(std::cin, model);
+        model.erase(0, model.find_first_not_of(" \t"));
+        model.erase(model.find_last_not_of(" \t") + 1);
+        
+        if (model.empty()) {
+            throw InputException("Модель не может быть пустой");
+        }
+        if (!isValidLength(model, 2, 50)) {
+            throw InputException("Модель должна быть от 2 до 50 символов");
+        }
+        if (!isValidNameFormat(model)) {
+            throw InputException("Модель должна начинаться с заглавной буквы (например: ЛиАЗ-5256, Трамвай-71)");
+        }
 
         std::cout << "Введите номерной знак: ";
         std::getline(std::cin, licensePlate);
+        licensePlate.erase(0, licensePlate.find_first_not_of(" \t"));
+        licensePlate.erase(licensePlate.find_last_not_of(" \t") + 1);
+        
+        if (licensePlate.empty()) {
+            throw InputException("Номерной знак не может быть пустым");
+        }
+        if (!isValidLicensePlate(licensePlate)) {
+            throw InputException("Номерной знак должен содержать буквы, цифры, пробелы, дефисы или подчеркивания (от 2 до 20 символов)");
+        }
 
         std::shared_ptr<Vehicle> vehicle;
         if (type == "Автобус") {
@@ -261,9 +500,28 @@ void adminAddStop(TransportSystem& system) {
             throw InputException("Неверный формат ввода для ID остановки");
         }
         std::cin.ignore();
+        
+        if (id < 1 || id > 9999) {
+            throw InputException("ID остановки должен быть от 1 до 9999");
+        }
 
         std::cout << "Введите название остановки: ";
         std::getline(std::cin, name);
+        name.erase(0, name.find_first_not_of(" \t"));
+        name.erase(name.find_last_not_of(" \t") + 1);
+        
+        if (name.empty()) {
+            throw InputException("Название остановки не может быть пустым");
+        }
+        if (!isValidText(name)) {
+            throw InputException("Название остановки должно содержать только буквы, пробелы, дефисы и апострофы");
+        }
+        if (!isValidLength(name, 3, 100)) {
+            throw InputException("Название остановки должно быть от 3 до 100 символов");
+        }
+        if (!isValidNameFormat(name)) {
+            throw InputException("Название остановки должно начинаться с заглавной буквы (например: Центральная площадь, Улица Ленина)");
+        }
 
         system.addStop(Stop(id, name));
         std::cout << "Остановка успешно добавлена!\n";
@@ -279,12 +537,72 @@ void adminAddDriver(TransportSystem& system) {
 
         std::cout << "Введите имя водителя: ";
         std::getline(std::cin, firstName);
+        // Убираем пробелы в начале и конце
+        firstName.erase(0, firstName.find_first_not_of(" \t"));
+        firstName.erase(firstName.find_last_not_of(" \t") + 1);
+        
+        if (firstName.empty()) {
+            throw InputException("Имя водителя не может быть пустым");
+        }
+        if (!isValidText(firstName)) {
+            throw InputException("Имя водителя должно содержать только буквы, пробелы, дефисы и апострофы");
+        }
+        if (!isValidLength(firstName, 2, 50)) {
+            throw InputException("Имя водителя должно быть от 2 до 50 символов");
+        }
+        if (!isValidNameFormat(firstName)) {
+            throw InputException("Имя водителя должно начинаться с заглавной буквы (например: Иван, Мария-Луиза)");
+        }
+        
         std::cout << "Введите фамилию водителя: ";
         std::getline(std::cin, lastName);
+        lastName.erase(0, lastName.find_first_not_of(" \t"));
+        lastName.erase(lastName.find_last_not_of(" \t") + 1);
+        
+        if (lastName.empty()) {
+            throw InputException("Фамилия водителя не может быть пустой");
+        }
+        if (!isValidText(lastName)) {
+            throw InputException("Фамилия водителя должна содержать только буквы, пробелы, дефисы и апострофы");
+        }
+        if (!isValidLength(lastName, 2, 50)) {
+            throw InputException("Фамилия водителя должна быть от 2 до 50 символов");
+        }
+        if (!isValidNameFormat(lastName)) {
+            throw InputException("Фамилия водителя должна начинаться с заглавной буквы (например: Иванов, Петров-Сидоров)");
+        }
+        
         std::cout << "Введите отчество водителя (если есть, иначе Enter): ";
         std::getline(std::cin, middleName);
+        middleName.erase(0, middleName.find_first_not_of(" \t"));
+        middleName.erase(middleName.find_last_not_of(" \t") + 1);
+        
+        if (!middleName.empty()) {
+            if (!isValidText(middleName)) {
+                throw InputException("Отчество водителя должно содержать только буквы, пробелы, дефисы и апострофы");
+            }
+            if (!isValidLength(middleName, 2, 50)) {
+                throw InputException("Отчество водителя должно быть от 2 до 50 символов");
+            }
+            if (!isValidNameFormat(middleName)) {
+                throw InputException("Отчество водителя должно начинаться с заглавной буквы (например: Иванович, Петровна)");
+            }
+        }
+        
         std::cout << "Введите категорию водительских прав (D, T, DT, B, C и т.д.): ";
         std::getline(std::cin, category);
+        category.erase(0, category.find_first_not_of(" \t"));
+        category.erase(category.find_last_not_of(" \t") + 1);
+        
+        if (category.empty()) {
+            throw InputException("Категория водительских прав не может быть пустой");
+        }
+        if (!isValidDriverCategory(category)) {
+            throw InputException("Категория водительских прав должна содержать только буквы и цифры (например: D, T, DT, B, C)");
+        }
+        if (containsOnlyDigits(category)) {
+            throw InputException("Категория водительских прав не может содержать только цифры");
+        }
 
         auto driver = std::make_shared<Driver>(firstName, lastName, middleName, category);
         system.addDriver(driver);
@@ -694,7 +1012,7 @@ void runGuestMode(TransportSystem& system) {
         if (!(std::cin >> choice)) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Неверный формат ввода. Введите число.\n";
+            std::cout << "Ошибка: ожидается число. Пожалуйста, введите только цифры.\n";
             continue;
         }
         std::cin.ignore();
@@ -744,7 +1062,7 @@ void runAdminMode(TransportSystem& system) {
         if (!(std::cin >> choice)) {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            std::cout << "Неверный формат ввода. Введите число.\n";
+            std::cout << "Ошибка: ожидается число. Пожалуйста, введите только цифры.\n";
             continue;
         }
         std::cin.ignore();
