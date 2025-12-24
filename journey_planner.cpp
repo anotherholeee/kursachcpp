@@ -5,32 +5,20 @@
 #include <set>
 #include "exceptions.h"
 
-/**
- * @brief Конструктор планировщика поездок
- * @param sys Указатель на транспортную систему
- * 
- * Инициализирует планировщик и создает алгоритмы поиска маршрутов:
- * - BFS для поиска всех маршрутов с пересадками
- * - FastestPath для поиска самого быстрого маршрута
- * - MinimalTransfers для поиска маршрута с минимальными пересадками
- */
+// Конструктор планировщика поездок
+// Инициализирует планировщик и создает алгоритмы поиска маршрутов:
+// BFS для поиска всех маршрутов с пересадками,
+// FastestPath для поиска самого быстрого маршрута,
+// MinimalTransfers для поиска маршрута с минимальными пересадками
 JourneyPlanner::JourneyPlanner(TransportSystem* sys) 
     : system(sys),
       bfsAlgorithm(std::make_unique<BFSAlgorithm>(sys, 2)),
       fastestAlgorithm(std::make_unique<FastestPathAlgorithm>(sys)),
       minimalTransfersAlgorithm(std::make_unique<MinimalTransfersAlgorithm>(sys)) {}
 
-/**
- * @brief Поиск маршрутов с пересадками с заданным временем отправления
- * @param startStop Начальная остановка
- * @param endStop Конечная остановка
- * @param departureTime Время отправления
- * @param maxTransfers Максимальное количество пересадок
- * @return Список найденных поездок
- * 
- * Использует алгоритм BFS для поиска всех возможных маршрутов
- * с учетом ограничения на количество пересадок.
- */
+// Поиск маршрутов с пересадками с заданным временем отправления
+// Использует алгоритм BFS для поиска всех возможных маршрутов
+// с учетом ограничения на количество пересадок
 List<Journey> JourneyPlanner::findJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,
@@ -42,17 +30,10 @@ List<Journey> JourneyPlanner::findJourneysWithTransfers(
     return bfs.findPath(startStop, endStop, departureTime);
 }
 
-/**
- * @brief Поиск всех возможных маршрутов между остановками (без привязки ко времени)
- * @param startStop Начальная остановка
- * @param endStop Конечная остановка
- * @param maxTransfers Максимальное количество пересадок
- * @return Список всех найденных поездок, отсортированных по времени отправления и длительности
- * 
- * Находит все возможные маршруты между остановками, начиная с любого рейса,
- * проходящего через начальную остановку. Использует BFS с ограничением итераций
- * для предотвращения зависания.
- */
+// Поиск всех возможных маршрутов между остановками (без привязки ко времени)
+// Находит все возможные маршруты между остановками, начиная с любого рейса,
+// проходящего через начальную остановку. Использует BFS с ограничением итераций
+// для предотвращения зависания
 List<Journey> JourneyPlanner::findAllJourneysWithTransfers(
     const std::string& startStop,
     const std::string& endStop,

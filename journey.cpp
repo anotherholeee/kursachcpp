@@ -1,14 +1,7 @@
 #include "journey.h"
 
-/**
- * @brief Конструктор поездки
- * @param tripList Список рейсов, составляющих поездку
- * @param transfers Список остановок, где происходят пересадки
- * @param start Время начала поездки
- * @param end Время окончания поездки
- * 
- * Создает объект поездки, который может состоять из нескольких рейсов с пересадками.
- */
+// Конструктор поездки
+// Создает объект поездки, который может состоять из нескольких рейсов с пересадками
 Journey::Journey(const List<std::shared_ptr<Trip>>& tripList,
             const List<std::string>& transfers,
             Time start, Time end)

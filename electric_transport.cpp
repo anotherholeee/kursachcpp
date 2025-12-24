@@ -1,15 +1,6 @@
 #include "electric_transport.h"
 
-/**
- * @brief Конструктор электрического транспорта
- * @param t Тип транспорта
- * @param m Модель
- * @param lp Государственный номер
- * @param cap Вместимость пассажиров
- * @param volt Напряжение питания в вольтах
- * 
- * Создает объект электрического транспорта с заданными параметрами.
- */
+// Конструктор электрического транспорта
 ElectricTransport::ElectricTransport(const std::string& t, const std::string& m, const std::string& lp, 
                       int cap, double volt)
     : Vehicle(t, m, lp), capacity(cap), voltage(volt) {}

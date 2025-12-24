@@ -1,15 +1,6 @@
 #include "fuel_transport.h"
 
-/**
- * @brief Конструктор топливного транспорта
- * @param t Тип транспорта
- * @param m Модель
- * @param lp Государственный номер
- * @param cap Вместимость пассажиров
- * @param fuel Тип топлива (бензин, дизель, газ)
- * 
- * Создает объект топливного транспорта с заданными параметрами.
- */
+// Конструктор топливного транспорта
 FuelTransport::FuelTransport(const std::string& t, const std::string& m, const std::string& lp, 
                   int cap, const std::string& fuel)
     : Vehicle(t, m, lp), capacity(cap), fuelType(fuel) {}

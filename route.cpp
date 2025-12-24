@@ -1,16 +1,8 @@
 #include "route.h"
 #include <sstream>
 
-/**
- * @brief Конструктор маршрута
- * @param num Номер маршрута
- * @param vType Тип транспортного средства (Автобус, Трамвай, Троллейбус)
- * @param stops Список остановок маршрута
- * @param days Дни недели, когда работает маршрут (1-понедельник, 7-воскресенье)
- * 
- * Создает маршрут с заданными параметрами. Первая остановка становится начальной,
- * последняя - конечной.
- */
+// Конструктор маршрута
+// Первая остановка становится начальной, последняя - конечной
 Route::Route(int num, const std::string& vType, const List<std::string>& stops,
           const std::set<int>& days)
     : number(num), vehicleType(vType), allStops(stops), weekDays(days) {
@@ -84,12 +76,7 @@ bool Route::operatesOnDay(int day) const {
     return weekDays.find(day) != weekDays.end();
 }
 
-/**
- * @brief Сериализация маршрута в строку
- * @return Строка формата "number|vehicleType|stop1;stop2;...|1,2,3,4,5,6,7"
- * 
- * Формат: номер|тип_транспорта|остановки_через_точку_с_запятой|дни_недели_через_запятую
- */
+// Сериализация маршрута в строку формата "number|vehicleType|stop1;stop2;...|1,2,3,4,5,6,7"
 std::string Route::serialize() const {
     std::string result = std::to_string(number) + "|" + vehicleType + "|";
     // Добавляем остановки через точку с запятой
@@ -106,14 +93,8 @@ std::string Route::serialize() const {
     return result;
 }
 
-/**
- * @brief Десериализация маршрута из строки
- * @param data Строка формата "number|vehicleType|stop1;stop2;...|1,2,3,4,5,6,7"
- * @return Указатель на созданный маршрут
- * 
- * Парсит строку и создает объект Route. Если дни недели не указаны,
- * используется значение по умолчанию (все дни недели).
- */
+// Десериализация маршрута из строки
+// Если дни недели не указаны, используется значение по умолчанию (все дни недели)
 std::shared_ptr<Route> Route::deserialize(const std::string& data) {
     std::istringstream ss(data);
     std::string numberStr, vehicleType, stopsStr, daysStr;

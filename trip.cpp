@@ -5,18 +5,8 @@
 #include "trolleybus.h"
 #include <sstream>
 
-/**
- * @brief Конструктор рейса
- * @param id Уникальный идентификатор рейса
- * @param r Маршрут рейса
- * @param v Транспортное средство
- * @param d Водитель
- * @param start Время отправления
- * @param day День недели (1-понедельник, 7-воскресенье)
- * 
- * Создает рейс с заданными параметрами. Расписание прибытия на остановки
- * устанавливается отдельно через setArrivalTime.
- */
+// Конструктор рейса
+// Расписание прибытия на остановки устанавливается отдельно через setArrivalTime
 Trip::Trip(int id, std::shared_ptr<Route> r, std::shared_ptr<Vehicle> v,
          std::shared_ptr<Driver> d, const Time& start, int day)
     : tripId(id), route(std::move(r)), vehicle(std::move(v)),
