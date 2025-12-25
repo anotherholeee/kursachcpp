@@ -20,11 +20,8 @@ else()
     set(QT_VERSION_MAJOR 5)
 endif()
 
-# Исходные файлы проекта
-set(SOURCES
-        main_qt.cpp
-        qt_ui.cpp
-        qt_ui.h
+# Общие исходные файлы проекта (без main и ui)
+set(COMMON_SOURCES
         exceptions.cpp
         stop.cpp
         time.cpp
@@ -45,11 +42,28 @@ set(SOURCES
         command.cpp
         commands.cpp
         transport_system.cpp
-        ui.cpp
 )
 
-# Создание исполняемого файла
-add_executable(kursovayacpp_qt ${SOURCES})
+# Консольная версия (без Qt)
+set(CONSOLE_SOURCES
+        main.cpp
+        ui.cpp
+        ${COMMON_SOURCES}
+)
+
+# Qt версия
+set(QT_SOURCES
+        main_qt.cpp
+        qt_ui.cpp
+        qt_ui.h
+        ${COMMON_SOURCES}
+)
+
+# Создание консольного исполняемого файла
+add_executable(kursovayacpp ${CONSOLE_SOURCES})
+
+# Создание Qt исполняемого файла
+add_executable(kursovayacpp_qt ${QT_SOURCES})
 
 # Подключение Qt библиотек
 if(QT_VERSION_MAJOR EQUAL 6)
@@ -66,8 +80,9 @@ endif()
 
 # Для Windows: дополнительные настройки
 if(WIN32)
+    target_compile_definitions(kursovayacpp PRIVATE _WIN32_WINNT=0x0601)
     target_compile_definitions(kursovayacpp_qt PRIVATE _WIN32_WINNT=0x0601)
-    # Установка кодировки UTF-8 для Windows
+    # Установка кодировки UTF-8 для Windows (только для Qt версии)
     target_compile_definitions(kursovayacpp_qt PRIVATE UNICODE _UNICODE)
 endif()
 
